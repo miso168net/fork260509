@@ -69,6 +69,40 @@ services:
       - admin-net
     restart: "no"             # init container：跑完 exit 0 後不重啟
 
+  new-admin-rust-api:
+    build:
+      context: ../admin-api
+      dockerfile: Dockerfile
+    image: new-admin-rust-api:latest    # 與 migration 的 build stage 共享 BuildKit cache（multi-stage layer dedupe）
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-new_admin}
+      DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-10}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:?must set JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-https://github.com/your-org/new-admin}
+      JWT_EXPIRE: ${JWT_EXPIRE:-7200}
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 10001
+      RUST_LOG: ${RUST_LOG:-info}
+      TZ: ${TZ:?must set TZ}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+    networks:
+      - admin-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:10001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # 不設 ports：prod 走同源反代（FR-116）；dev override 由 T010 加 :10001
+
 networks:
   admin-net:
     driver: bridge
