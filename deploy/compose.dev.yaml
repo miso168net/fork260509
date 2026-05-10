@@ -1,0 +1,21 @@
+# ============================================================
+# new-admin-root dev 模式 override
+# 用法：
+#   docker compose -f compose.yaml -f compose.dev.yaml up -d postgres redis migration
+# 之後 admin-web 在 host 跑 pnpm dev、vite 透過 :10001 反代到 admin-rust-api
+#
+# 後續 task 會加：
+# - T010: admin-rust-api ports 10001:10001 + RUST_LOG=debug
+# - T012: admin-base-web profiles: ["never"]（dev 不啟）
+# ============================================================
+
+name: new-admin-root-dev
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"        # dev 暴露給 host 工具（DBeaver / psql）
+
+  redis:
+    ports:
+      - "6379:6379"        # dev 暴露給 host 工具（redis-cli）
