@@ -52,6 +52,7 @@ graphify-out/manifest.json
 .env
 .env.local
 .env.*.local
+deploy/.env
 *.pem
 *.key
 .dev.vars
