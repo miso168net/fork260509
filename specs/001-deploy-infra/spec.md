@@ -199,9 +199,9 @@
 ### 待驗證的上游慣例（依 constitution §IV）
 
 - [ ] 預設管理員密碼是 `Soybean@123.`（CLAUDE.md §5 待驗證項；本 feature US1 acceptance 會經由 `psql ... SELECT username FROM sys_user` 順帶驗到 user 存在，但密碼本身要等 feature 2/3 login flow 完成才能驗）。
-- [ ] Sea-ORM migration 是 idempotent（重跑不報錯不覆寫 seed）— 本 feature US1 acceptance scenario #3 直接驗證。
-- [ ] postgres/redis 的 healthcheck 條件（`pg_isready` / `redis-cli ping -a $PASSWORD`）能在 60 秒內穩定回 healthy — 本 feature 啟動時驗。
-- [ ] `name: new-admin-root` 在 compose 內能避免與其他 stack 同名 service 撞名 — 本 feature 用乾淨環境驗。
+- [x] **驗證 Sea-ORM migration 是 idempotent**（重跑不報錯不覆寫 seed）— 本 feature US1 acceptance scenario #3 直接驗證。**T008 acceptance-evidence/T008.md PASS**（2026-05-11）：第二次 migration 報「No pending migrations」、user/table count 不變。
+- [x] **驗證 postgres/redis 的 healthcheck 條件能在 60 秒內穩定回 healthy**（`pg_isready` / `redis-cli ping -a $PASSWORD`）— **T008 acceptance-evidence/T008.md PASS**（2026-05-11）：實測 postgres/redis 各 1 秒內 healthy，遠優於 60 秒目標。
+- [x] **驗證 `name: new-admin-root` 在 compose 內能避免與其他 stack 同名 service 撞名** — **T018 acceptance-evidence/T018.md PASS**（2026-05-11）：prod compose `name: new-admin-root`、dev override `name: new-admin-root-dev`；容器命名隔離正確。
 
 ### 不在範圍
 
