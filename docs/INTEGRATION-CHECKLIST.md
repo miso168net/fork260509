@@ -1,6 +1,6 @@
 # INTEGRATION-CHECKLIST — 整合進度追蹤
 
-> 此檔記錄當前進度與 6-feature roadmap。每完成一個 feature 就更新狀態。
+> 此檔記錄當前進度與 7-feature roadmap。每完成一個 feature 就更新狀態。
 > 不放原則（原則在 `.specify/memory/constitution.md`）、不放規格（規格在 `specs/<###-feature>/`）、不放操作參考事實（如預設帳號在 CLAUDE.md §5）。
 
 ## 已完成里程碑
@@ -10,7 +10,7 @@
 - [x] 引入 spec-kit v0.8.7（commit `6209238`）
 - [x] 制定 constitution v1.1.0（commits `73a4f17`、`22da195`；含 §III 合併例外條款）
 
-## 6-feature roadmap
+## 7-feature roadmap
 
 依 constitution §III 合併例外條款拆出：
 
@@ -21,11 +21,12 @@
 | 3 | `gap-0cd-rust-output-camel` | 0c, 0d | admin-api | admin-api serialize 對齊 admin-web (camelCase) | ~5 行 | ☐ | ☐ | ☐ | 待 |
 | 4 | `gap-1-refresh-handler` | 1 | admin-api | refresh token endpoint | ~80 行 | ☐ | ☐ | ☐ | 待 |
 | 5 | `admin-web-cleanup` | 2, 3, 4 | admin-web | admin-api 對齊後的 admin-web 清理 | ~25 行 | ☐ | ☐ | ☐ | 待 |
+| 7 | `admin-web-dockerfile` | (非 GAP) | admin-web | multi-stage Dockerfile (pnpm build → nginx serve) | 中 | ☐ | ☐ | ☐ | 待 |
 | 6 | `dockerfile-envsubst` | (非 GAP) | admin-api | envsubst 模板化 | 中 | ☐ | ☐ | ☐ | 待 |
 
 GAP 詳細描述見 `docs/INTEGRATION-PLAN.md §4`。
 
-**建議實施順序**：1（基礎設施）→ 2（admin-web env 對齊）→ 3（admin-api 對齊）→ 驗 login（含 CDP）→ 4（refresh handler）→ 5（admin-web cleanup）→ 6（Dockerfile envsubst 收尾）。
+**建議實施順序**：1（基礎設施）→ 2（admin-web env 對齊）→ 3（admin-api 對齊）→ 驗 login（含 CDP）→ 4（refresh handler）→ 5（admin-web cleanup）→ 7（admin-web Dockerfile）→ 6（Dockerfile envsubst 收尾）。
 
 ## 跨 feature 的待驗證項
 
