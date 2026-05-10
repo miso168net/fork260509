@@ -336,3 +336,8 @@ git log --oneline -5                  # 最近 5 個外層 commit，看 pin 變�
 ```
 
 若發現 worktree 不存在（`.git` 不在），代表使用者可能在新機器或 worktree 被誤刪 — 提示走 §9.1 重建。
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->
