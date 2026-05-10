@@ -1,16 +1,21 @@
 <!--
 SYNC IMPACT REPORT
-Version change: (initial) → 1.0.0
-Bump rationale: First ratification — 把 CLAUDE.md / INTEGRATION-PLAN.md 既有決策正式化為 normative constitution。
-Modified principles: (none, initial draft)
-Added sections: Core Principles (7 條)、Additional Constraints、Development Workflow、Governance
+Version change: 1.0.0 → 1.1.0 (MINOR — §III 加入例外條款，材料性擴充指引)
+
+Modified principles:
+  - §III 最小 GAP 修補 — 加入兩條例外條款（同檔合併、同主題同倉合併）；
+    顯式禁止跨倉/跨主題/跨 acceptance test 的合併；rationale 與 verification
+    段同步擴寫。
+Added sections: (none)
 Removed sections: (none)
 Templates requiring updates:
-  ✅ .specify/templates/plan-template.md — `Constitution Check` 段保留通用 placeholder（plan 階段會引用本檔）；本檔 7 原則中的 §I/§II/§III/§IV/§V 將作為 plan-time gates
-  ✅ .specify/templates/spec-template.md — 無需修改（spec 不直接引用 constitution）
+  ✅ .specify/templates/plan-template.md — Constitution Check 通用 placeholder 仍適用
+  ✅ .specify/templates/spec-template.md — spec.md 開頭加 GAP id 清單的要求由 §III 內文規範，無需改 template
   ✅ .specify/templates/tasks-template.md — 無需修改
-Follow-up TODOs:
-  - CLAUDE.md §4/§6/§7 與本檔有部分重疊（兩段式 commit、no CorsLayer、commit 規範）— 後續可在 CLAUDE.md 加 cross-reference 指向本檔，當衝突時以本檔為準（已寫進 §Governance）
+Follow-up TODOs: (none — 上次的 CLAUDE.md cross-reference 待辦仍有效)
+
+PRIOR HISTORY:
+  v1.0.0 (2026-05-10): First ratification — 把 CLAUDE.md / INTEGRATION-PLAN.md 既有決策正式化為 normative constitution。
 -->
 
 # new-admin-root Constitution
@@ -35,11 +40,16 @@ Follow-up TODOs:
 
 ### III. 最小 GAP 修補 (Smallest Diff per GAP)
 
-每個整合 GAP（INTEGRATION-PLAN §4 列出的 10 個）必須有自己的 spec / plan / tasks / commit 系列。**禁止**把多個 GAP 綁在一個 PR 或一個 spec 內。**禁止**順手 refactor 不在 spec scope 內的程式碼。
+每個整合 GAP（INTEGRATION-PLAN §4 列出的 10 個）原則上應有自己的 spec / plan / tasks / commit 系列。**例外**：當多個 GAP 滿足下列**任一**條件時，可合併為單一 feature spec：
 
-**Rationale**：GAP 之間互相獨立，bundle 起來增加 review 與 rollback 成本；每個 GAP 的 verification 標準不同，混在一起無法分別驗。
+1. **同檔**：所有改動位於同一個檔案（例如 .env 內多個 key、同一 .rs 檔的多個 `#[serde]` attribute）。
+2. **同主題同倉**：屬於同一概念主題且位於同一倉/層內（例如「admin-web cleanup」可包含 GAP-2/3/4；「admin-api response camelCase」可包含 GAP-0c/0d）。
 
-**Verification**：每個 spec.md 開頭明確指出 scope（單一 GAP id 或單一 feature 主題）；commit message 的 scope 段（`feat(admin-web): GAP-0a ...`）與 spec 對齊；diff 不包含與 scope 無關的檔案。
+合併時 spec.md **必須**在開頭顯式列出涵蓋的 GAP id 清單與分組理由。**禁止**把不同主題、**跨倉**、不同 acceptance test 的 GAP bundle 在一起（跨倉合併會破壞 PR review 邊界與 CI build 對象的單一性）。**禁止**順手 refactor 不在 spec scope 內的程式碼。
+
+**Rationale**：GAP 之間原則上獨立，bundle 起來增加 review 與 rollback 成本；但同檔/同主題的微改如果硬拆 spec.md 會產生不成比例的 ceremony。例外條款讓 micro-GAPs 能聚合，但跨倉與跨主題的禁制保留 review/CI 邊界完整性。
+
+**Verification**：每個 spec.md 開頭明確指出 scope（單一 GAP id、或一個 GAP id 清單 + 分組理由）；commit message 的 scope 段（`feat(admin-web): GAP-0a ...`）與 spec 對齊；diff 不包含與 scope 無關的檔案；合併型 spec 的所有 GAP 必須在同一個 PR 內 merge。
 
 ### IV. 上游驗證 (Verify Upstream Conventions)
 
@@ -201,4 +211,4 @@ Co-Authored-By: ...
 
 ---
 
-**Version**: 1.0.0 | **Ratified**: 2026-05-10 | **Last Amended**: 2026-05-10
+**Version**: 1.1.0 | **Ratified**: 2026-05-10 | **Last Amended**: 2026-05-11
