@@ -1,0 +1,12 @@
+# Cross-platform line endings — LF for shell/config/yaml
+# Windows host with autocrlf=true converts LF to CRLF on checkout;
+# alpine container and nginx -t reject CRLF in shell/config files.
+# This in-tree .gitattributes enforces LF universally.
+# Addresses research.md R7, spec FR-140, constitution cross-platform clause.
+
+* text=auto eol=lf
+*.sh text eol=lf
+*.conf text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+deploy/.env.example text eol=lf
