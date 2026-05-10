@@ -7,7 +7,7 @@
 
 建立 outer 倉 `new-admin-root` 的 `deploy/` 目錄，提供整合部署的 5 個基礎設定檔（`compose.yaml` / `compose.dev.yaml` / `nginx/default.conf` / `.env.example` 與 `.gitignore` 條目對齊），讓 operator 能：
 
-- **dev 模式**：起 postgres + redis + migration + admin-rust-api（admin-web 走 host vite），驗證 13 張表 + 3 seed user 寫入。
+- **dev 模式**：起 postgres + redis + migration + new-admin-rust-api（admin-web 走 host vite），驗證 13 張表 + 3 seed user 寫入。
 - **prod 模式**（依賴 feature 6/7 完成）：對外只暴露 `:8080`，nginx 同源反代解決 GAP-0e CORS、所有 service 內網互通。
 
 技術路線：採 INTEGRATION-PLAN §5.1-5.6 既有 compose/nginx/env 範例為基礎，補強 fail-fast secrets 驗證、idempotent migration 驗證、靜態驗證閘（compose config + nginx -t）。
@@ -71,7 +71,7 @@ specs/001-deploy-infra/
 ├── contracts/
 │   ├── env-variables.md        # .env.example 變數契約（被 admin-api / admin-web build 階段消費）
 │   ├── service-naming.md       # admin-net 內 service name DNS 契約（被 nginx / migration 引用）
-│   └── nginx-routes.md         # nginx → admin-rust-api 路由契約（GAP-0e 的物理體現）
+│   └── nginx-routes.md         # nginx → new-admin-rust-api 路由契約（GAP-0e 的物理體現）
 ├── checklists/
 │   └── requirements.md         # spec quality checklist（已存在，全綠）
 └── tasks.md             # /speckit-tasks 產出（不在本 plan 範圍）
@@ -84,8 +84,8 @@ specs/001-deploy-infra/
 ```text
 fork260509/                                  ← outer repo (new-admin-root) 工作區根
 ├── deploy/                                  ★ 本 feature 新增
-│   ├── compose.yaml                         ★ prod 主編排（5 service：postgres / redis / migration / admin-rust-api / admin-base-web）
-│   ├── compose.dev.yaml                     ★ dev override（暴露 5432/6379/10001 port、admin-base-web profile=never）
+│   ├── compose.yaml                         ★ prod 主編排（5 service：postgres / redis / migration / new-admin-rust-api / new-admin-base-web）
+│   ├── compose.dev.yaml                     ★ dev override（暴露 5432/6379/10001 port、new-admin-base-web profile=never）
 │   ├── nginx/
 │   │   └── default.conf                     ★ reverse proxy + SPA fallback + /health
 │   └── .env.example                         ★ env 變數樣板（必填用 :?、可選用 :-）
@@ -111,8 +111,8 @@ fork260509/                                  ← outer repo (new-admin-root) 工
 由於 spec 已通過 `/speckit-clarify` 解掉 2 個高影響 ambiguity（admin-web Dockerfile 歸屬、production hardening 範圍），剩餘 unknown 為「best practices 確認」與「上游驗證指令具現化」。research.md 涵蓋：
 
 1. **Compose v2 dependency model**：`depends_on` 用 `condition: service_healthy` / `condition: service_completed_successfully` 的行為差異與失敗回饋。
-2. **Healthcheck 最佳實踐**：postgres `pg_isready`、redis `redis-cli ping -a`、admin-rust-api `wget /health` 的 timeout / retries / start_period 推薦值，與 SC-004「30 秒內 healthy」的對齊。
-3. **nginx → docker service-name DNS 解析**：`proxy_pass http://admin-rust-api:10001/` 在 docker compose 內網依靠 docker DNS resolver；nginx 啟動時 service 還沒起會怎樣（startup ordering）。
+2. **Healthcheck 最佳實踐**：postgres `pg_isready`、redis `redis-cli ping -a`、new-admin-rust-api `wget /health` 的 timeout / retries / start_period 推薦值，與 SC-004「30 秒內 healthy」的對齊。
+3. **nginx → docker service-name DNS 解析**：`proxy_pass http://new-admin-rust-api:10001/` 在 docker compose 內網依靠 docker DNS resolver；nginx 啟動時 service 還沒起會怎樣（startup ordering）。
 4. **Migration idempotency**：Sea-ORM `MigratorTrait::up` 對重複 migration 的處理（spec assumption 待驗證項 #2）。
 5. **Compose project name `name:` 隔離**：避免與其他 stack 同名 service 撞（spec edge case）。
 6. **Dev override 的 profile/never 模式**：profile 的 docker compose 文件版本支援度。
@@ -143,17 +143,17 @@ fork260509/                                  ← outer repo (new-admin-root) 工
 #### `contracts/env-variables.md`
 - 必填變數（4 個）：POSTGRES_PASSWORD、REDIS_PASSWORD、JWT_SECRET、（隱含）TZ
 - 可選變數（≥ 8 個）：POSTGRES_DB / POSTGRES_USER / WEB_PORT / TZ / RUST_LOG / JWT_EXPIRE / DATABASE_MAX_CONNECTIONS / VITE_APP_TITLE / VITE_AUTH_ROUTE_MODE / VITE_STATIC_SUPER_ROLE
-- 每個變數的：用途、消費者（postgres image / admin-rust-api / admin-web build args / nginx）、fallback、validation 規則
+- 每個變數的：用途、消費者（postgres image / new-admin-rust-api / admin-web build args / nginx）、fallback、validation 規則
 
 #### `contracts/service-naming.md`
-- admin-net 內穩定 service name 清單（被 nginx 反代、被 admin-rust-api DATABASE_URL/REDIS_URL 引用、被 migration depends_on）：
-  - `postgres` / `redis` / `migration` / `admin-rust-api` / `admin-base-web`
+- admin-net 內穩定 service name 清單（被 nginx 反代、被 new-admin-rust-api DATABASE_URL/REDIS_URL 引用、被 migration depends_on）：
+  - `postgres` / `redis` / `migration` / `new-admin-rust-api` / `new-admin-base-web`
 - DNS resolution: docker compose 為每個 service 在內網註冊 `<service>` 短名 + `<service>.admin-net` FQDN
-- **變更政策**：service name 若改動，下游 nginx conf / admin-rust-api 環境變數須同步；視為 breaking change，需新 spec
+- **變更政策**：service name 若改動，下游 nginx conf / new-admin-rust-api 環境變數須同步；視為 breaking change，需新 spec
 
 #### `contracts/nginx-routes.md`
 - 路由表（method / path / proxy_pass target / SPA fallback 行為 / cache header）
-- `/api/*` → `http://admin-rust-api:10001/`（strip `/api/` 前綴）
+- `/api/*` → `http://new-admin-rust-api:10001/`（strip `/api/` 前綴）
 - `/health` → static `200 ok\n`（給 docker healthcheck）
 - `/` → SPA fallback（`try_files $uri $uri/ /index.html`）
 - 靜態資源 cache 規則

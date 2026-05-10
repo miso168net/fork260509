@@ -26,7 +26,7 @@ git submodule update --init --recursive
 
 ---
 
-## 1. Dev 模式（資料層 + admin-rust-api，admin-web 走 host vite）
+## 1. Dev 模式（資料層 + new-admin-rust-api，admin-web 走 host vite）
 
 ### 1.1 設定 .env
 
@@ -74,13 +74,13 @@ docker compose exec postgres psql -U admin -d new_admin \
 # 預期 3 筆：Administrator / GeneralUser / Soybean
 ```
 
-### 1.4 起 admin-rust-api（依賴 feature 6 完成）
+### 1.4 起 new-admin-rust-api（依賴 feature 6 完成）
 
 > ⚠️ feature 6 (`dockerfile-envsubst`) 完成後才能跑此步。當前若直接起，application.yaml hardcode 的 DB URL 不指向 docker postgres，會啟動失敗。
 
 ```bash
-docker compose -f compose.yaml -f compose.dev.yaml up -d admin-rust-api
-docker compose -f compose.yaml -f compose.dev.yaml logs -f admin-rust-api
+docker compose -f compose.yaml -f compose.dev.yaml up -d new-admin-rust-api
+docker compose -f compose.yaml -f compose.dev.yaml logs -f new-admin-rust-api
 # 等到 "axum listening on 0.0.0.0:10001"
 ```
 
@@ -125,7 +125,7 @@ docker compose ps                      # 等 healthcheck 全綠
 # 應只看到 :8080
 docker compose ps --format json \
   | jq -r '.[] | select(.Publishers != null) | .Service + ": " + (.Publishers | tostring)'
-# 預期單行：admin-base-web: [..."HostPort":8080...]
+# 預期單行：new-admin-base-web: [..."HostPort":8080...]
 ```
 
 ### 2.3 訪問
@@ -164,8 +164,8 @@ docker run --rm -v "$(pwd)/deploy/nginx:/etc/nginx/conf.d:ro" \
 | `docker compose up` 報 `variable POSTGRES_PASSWORD is required` | `.env` 沒填或不存在 | `cp .env.example .env && $EDITOR .env` |
 | postgres healthcheck 一直 unhealthy | password 含特殊字元未轉義 / 5432 port 衝突（host 上有別的 postgres） | 改密碼、`docker compose -f compose.dev.yaml down`、檢查 `lsof -i :5432` |
 | migration `Exited (1)` | DB 連不上 / migration code bug（admin-api 倉） | `docker compose logs migration`；DB 連不上 → 檢查 postgres healthy 與 .env DATABASE_URL；code bug 上報 admin-api 倉 |
-| admin-rust-api 啟動 panic「config not found」 | feature 6 envsubst 未完成 / `.env` 缺變數 | 等 feature 6 merge；補 .env |
-| nginx 反代回 502 | admin-rust-api 還沒 healthy / DNS resolve 失敗 | `docker compose ps` 看 admin-rust-api 狀態；`docker compose exec admin-base-web nslookup admin-rust-api` |
+| new-admin-rust-api 啟動 panic「config not found」 | feature 6 envsubst 未完成 / `.env` 缺變數 | 等 feature 6 merge；補 .env |
+| nginx 反代回 502 | new-admin-rust-api 還沒 healthy / DNS resolve 失敗 | `docker compose ps` 看 new-admin-rust-api 狀態；`docker compose exec new-admin-base-web nslookup new-admin-rust-api` |
 | postgres 升 major 版起不來 | 17 → 18 data dir 不向後兼容 | `docker volume rm new-admin-root_pg-data`（**毀資料**！）或先 `pg_dumpall` 後 restore |
 | Windows host 上 alpine container 報 `^M: not found` | git autocrlf 把 LF → CRLF | 確認 outer repo 有 `.gitattributes` 鎖 LF；重 checkout：`git rm --cached -r . && git reset --hard` |
 | `git submodule status` 行首 `+` | worktree HEAD 超前 outer pin | 兩段 commit 第二段沒做：`git add admin-api admin-web && git commit -m "chore(submodule): bump ..."` |
@@ -195,7 +195,7 @@ redis-cli -h localhost -p 6379 -a "$(grep ^REDIS_PASSWORD deploy/.env | cut -d= 
 # 預期：PONG
 ```
 
-### 4.3 跑 admin-rust-api 的 host cargo watch（完全跳過 docker）
+### 4.3 跑 new-admin-rust-api 的 host cargo watch（完全跳過 docker）
 
 ```bash
 cd admin-api
@@ -206,7 +206,7 @@ SERVER_HOST=0.0.0.0 SERVER_PORT=10001 \
 cargo watch -x 'run -p server'
 ```
 
-> 此模式下 `docker compose up admin-rust-api` 不要起（避免兩個 process 搶 :10001 port）。
+> 此模式下 `docker compose up new-admin-rust-api` 不要起（避免兩個 process 搶 :10001 port）。
 
 ---
 

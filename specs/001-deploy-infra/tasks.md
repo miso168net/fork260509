@@ -68,20 +68,20 @@ docker compose exec postgres psql -U admin -d new_admin -c "SELECT user_name FRO
 
 ## Phase 4: User Story 3 - Dev vite proxy 對接點 (Priority: P2)
 
-**Goal**: dev 模式下 admin-rust-api 容器把 :10001 暴露給 host，讓 admin-web 在 host 跑 vite 時能 proxy 到。
+**Goal**: dev 模式下 new-admin-rust-api 容器把 :10001 暴露給 host，讓 admin-web 在 host 跑 vite 時能 proxy 到。
 
 **Independent Test**:
 ```bash
 docker compose -f compose.yaml -f compose.dev.yaml config --format json \
-  | jq -r '.services."admin-rust-api".ports[]?' \
+  | jq -r '.services."new-admin-rust-api".ports[]?' \
   | grep -q '10001:10001' && echo PASS || echo FAIL
 ```
-（不要求 admin-rust-api 實際啟動 — 啟動依賴 feature 6 envsubst；本 story 只到「設定面對外暴露」）
+（不要求 new-admin-rust-api 實際啟動 — 啟動依賴 feature 6 envsubst；本 story 只到「設定面對外暴露」）
 
 ### Implementation for User Story 3
 
-- [ ] T009 [US3] 在 `deploy/compose.yaml` 加入 admin-rust-api service：build context `../admin-api`、env DATABASE_URL/REDIS_URL/JWT_SECRET/JWT_ISSUER/JWT_EXPIRE/SERVER_HOST/SERVER_PORT/RUST_LOG/TZ（依 contracts/env-variables.md）、`depends_on postgres: healthy / redis: healthy / migration: completed_successfully`、healthcheck `wget -q -O - http://localhost:10001/health` 15/5/5/30、network admin-net。**不在 prod compose 設 ports**（prod 走同源反代）。
-- [ ] T010 [US3] 在 `deploy/compose.dev.yaml` 加入 admin-rust-api dev override：`ports: ["10001:10001"]`、`environment.RUST_LOG: debug`（覆蓋 prod 預設 info）；跑 acceptance 指令確認 `jq` 命中 `10001:10001`。
+- [ ] T009 [US3] 在 `deploy/compose.yaml` 加入 new-admin-rust-api service：build context `../admin-api`、env DATABASE_URL/REDIS_URL/JWT_SECRET/JWT_ISSUER/JWT_EXPIRE/SERVER_HOST/SERVER_PORT/RUST_LOG/TZ（依 contracts/env-variables.md）、`depends_on postgres: healthy / redis: healthy / migration: completed_successfully`、healthcheck `wget -q -O - http://localhost:10001/health` 15/5/5/30、network admin-net。**不在 prod compose 設 ports**（prod 走同源反代）。
+- [ ] T010 [US3] 在 `deploy/compose.dev.yaml` 加入 new-admin-rust-api dev override：`ports: ["10001:10001"]`、`environment.RUST_LOG: debug`（覆蓋 prod 預設 info）；跑 acceptance 指令確認 `jq` 命中 `10001:10001`。
 
 **Checkpoint**: US3 完成 = dev 模式 vite proxy 對接點就緒（待 feature 6 完成 envsubst 後才可實際 curl）。
 
@@ -96,7 +96,7 @@ docker compose -f compose.yaml -f compose.dev.yaml config --format json \
 # 對外只 :8080
 docker compose -f deploy/compose.yaml config --format json \
   | jq '[.services | to_entries[] | select(.value.ports != null) | .key]' \
-  | jq 'length == 1 and .[0] == "admin-base-web"' && echo PASS || echo FAIL
+  | jq 'length == 1 and .[0] == "new-admin-base-web"' && echo PASS || echo FAIL
 
 # nginx -t 過
 docker run --rm -v "$(pwd)/deploy/nginx:/etc/nginx/conf.d:ro" nginx:1.27-alpine nginx -t
@@ -107,9 +107,9 @@ docker run --rm -v "$(pwd)/deploy/nginx:/etc/nginx/conf.d:ro" nginx:1.27-alpine 
 
 ### Implementation for User Story 4
 
-- [ ] T011 [US4] 在 `deploy/compose.yaml` 加入 admin-base-web service：build context `..`（outer 倉根，因為 admin-web Dockerfile 在 `admin-web/Dockerfile`，content 由 feature 7 提供）、build args（VITE_BASE_URL=`/`、VITE_SERVICE_BASE_URL=`/api`、VITE_APP_TITLE/VITE_AUTH_ROUTE_MODE/VITE_STATIC_SUPER_ROLE）、`ports: ["${WEB_PORT:-8080}:80"]`、`depends_on admin-rust-api: service_healthy`、network admin-net、`restart: unless-stopped`。
-- [ ] T012 [US4] 在 `deploy/compose.dev.yaml` 加入 admin-base-web dev override：`profiles: ["never"]`（依 research.md R6 — dev 模式 admin-web 走 host vite，admin-base-web 永不啟）。
-- [ ] T013 [US4] 寫 `deploy/nginx/default.conf` — 嚴格依 `contracts/nginx-routes.md` normative：`listen 80`、`root /usr/share/nginx/html`、`location = /health` 回 `200 ok`（access_log off）、`location /api/` 反代到 `http://admin-rust-api:10001/`（含 X-Real-IP / X-Forwarded-For/Proto / X-Request-Id / Host header + WebSocket Upgrade preserve + 60s timeout）、`location /` SPA fallback、靜態 cache (`expires 30d`)、gzip 設定。**禁止**任何 `Access-Control-*` header（§I 紅線）。寫完跑 acceptance：`nginx -t` 過 + 上述 jq 對外 port 驗證 + grep CORS 紅線。
+- [ ] T011 [US4] 在 `deploy/compose.yaml` 加入 new-admin-base-web service：build context `..`（outer 倉根，因為 admin-web Dockerfile 在 `admin-web/Dockerfile`，content 由 feature 7 提供）、build args（VITE_BASE_URL=`/`、VITE_SERVICE_BASE_URL=`/api`、VITE_APP_TITLE/VITE_AUTH_ROUTE_MODE/VITE_STATIC_SUPER_ROLE）、`ports: ["${WEB_PORT:-8080}:80"]`、`depends_on new-admin-rust-api: service_healthy`、network admin-net、`restart: unless-stopped`。
+- [ ] T012 [US4] 在 `deploy/compose.dev.yaml` 加入 new-admin-base-web dev override：`profiles: ["never"]`（依 research.md R6 — dev 模式 admin-web 走 host vite，new-admin-base-web 永不啟）。
+- [ ] T013 [US4] 寫 `deploy/nginx/default.conf` — 嚴格依 `contracts/nginx-routes.md` normative：`listen 80`、`root /usr/share/nginx/html`、`location = /health` 回 `200 ok`（access_log off）、`location /api/` 反代到 `http://new-admin-rust-api:10001/`（含 X-Real-IP / X-Forwarded-For/Proto / X-Request-Id / Host header + WebSocket Upgrade preserve + 60s timeout）、`location /` SPA fallback、靜態 cache (`expires 30d`)、gzip 設定。**禁止**任何 `Access-Control-*` header（§I 紅線）。寫完跑 acceptance：`nginx -t` 過 + 上述 jq 對外 port 驗證 + grep CORS 紅線。
 
 **Checkpoint**: US4 完成 = prod 設定面就緒（等 feature 6+7 完成 image build 後可實際 prod 啟動）。
 
@@ -126,7 +126,7 @@ docker run --rm -v "$(pwd)/deploy/nginx:/etc/nginx/conf.d:ro" nginx:1.27-alpine 
 ### Implementation for User Story 2
 
 - [ ] T014 [P] [US2] 跑兩組靜態 compose 驗證並紀錄 stdout：(a) `docker compose -f deploy/compose.yaml config -q`、(b) `docker compose -f deploy/compose.yaml -f deploy/compose.dev.yaml config -q`，兩者都 exit 0、stderr 無 WARN/ERROR；額外跑 `docker compose -f deploy/compose.yaml config --format json | jq` 觀察展開後內容對齊 contracts/service-naming.md。
-- [ ] T015 [P] [US2] 跑 contracts/* 三份契約的 validation 指令清單並回填結果：(a) `contracts/env-variables.md` 段尾 4 條（必填 :? / 可選 :- / 無真實 secret / .env gitignored）、(b) `contracts/service-naming.md` 段尾 3 條（5 service 存在 / nginx 反代正確 / 全接 admin-net）、(c) `contracts/nginx-routes.md` 段尾 5 條（nginx -t / 路由完整 / proxy_pass target / CORS 紅線 / 必要 header）。任一 FAIL 即回前 stories phase 修正 + 重跑。
+- [ ] T015 [P] [US2] 跑 contracts/* 三份契約的 validation 指令清單並回填結果：(a) `contracts/env-variables.md` 段尾 4 條（必填 :? / 可選 :- / 無真實 secret / .env gitignored）、(b) `contracts/service-naming.md` 段尾 3 條（5 service 存在 / nginx 反代正確 / 全接 admin-net）、(c) `contracts/nginx-routes.md` 段尾 5 條（nginx -t / 路由完整 / proxy_pass target / CORS 紅線 / 必要 header）、(d) FR-141 negative check：`find deploy/ -type l | wc -l` 必須 = 0（無 symlink，依 constitution 跨平台相容）。任一 FAIL 即回前 stories phase 修正 + 重跑。
 
 **Checkpoint**: US1 + US2 + US3 + US4 全部完成 = feature 1 主交付完成（除 follow-up T020 外）。可整合 PR 推 origin。
 
@@ -156,8 +156,8 @@ docker run --rm -v "$(pwd)/deploy/nginx:/etc/nginx/conf.d:ro" nginx:1.27-alpine 
 - **Phase 1 (Setup)**：無依賴、立即可跑。
 - **Phase 2 (Foundational)**：依賴 Phase 1。BLOCKS 所有 user stories。
 - **Phase 3 (US1)**：依賴 Phase 2。Phase 3 完成 = MVP 1（dev 資料層）。
-- **Phase 4 (US3)**：依賴 Phase 2 + Phase 3（US3 在 compose.yaml 加 admin-rust-api，需要 US1 已建好骨架）。
-- **Phase 5 (US4)**：依賴 Phase 2 + Phase 4（US4 加 admin-base-web 依賴 admin-rust-api、admin-rust-api 由 US3 加）。
+- **Phase 4 (US3)**：依賴 Phase 2 + Phase 3（US3 在 compose.yaml 加 new-admin-rust-api，需要 US1 已建好骨架）。
+- **Phase 5 (US4)**：依賴 Phase 2 + Phase 4（US4 加 new-admin-base-web 依賴 new-admin-rust-api、new-admin-rust-api 由 US3 加）。
 - **Phase 6 (US2)**：依賴 Phase 3 + 4 + 5（要先有 yaml/conf 才能驗）。
 - **Phase 7 (Polish)**：依賴 Phase 6 完成。
 - **T020 follow-up**：依賴 features 6 + 7 完成（外部依賴，不在本 feature scope）。
@@ -210,8 +210,8 @@ Task T018: §IV 驗證 #4 compose project name 隔離
 
 ### 完整交付（~100% 工時）
 
-6. Phase 4 (US3): admin-rust-api compose 設定
-7. Phase 5 (US4): admin-base-web + nginx conf + 同源解 GAP-0e
+6. Phase 4 (US3): new-admin-rust-api compose 設定
+7. Phase 5 (US4): new-admin-base-web + nginx conf + 同源解 GAP-0e
 8. Phase 6 (US2): 靜態驗證閘全綠
 9. Phase 7 Polish: §IV 三項上游驗證 + 最終 commit
 

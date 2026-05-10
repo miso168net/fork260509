@@ -135,7 +135,7 @@
 
 - **FR-120**: nginx conf MUST listen 80 並 set root `/usr/share/nginx/html`。
 - **FR-121**: `location /api/` MUST `proxy_pass http://new-admin-rust-api:10001/`（注意尾巴斜線：strip `/api/` 前綴）。
-- **FR-122**: nginx MUST 設 `proxy_set_header X-Forwarded-{For,Proto}` 與 `Host` 與 `X-Real-IP` 與 `X-Request-Id`，讓 Rust 端可拿到原始 client 資訊。
+- **FR-122**: nginx MUST 設定下列 5 個 `proxy_set_header`：`Host`、`X-Real-IP`、`X-Forwarded-For`、`X-Forwarded-Proto`、`X-Request-Id`，讓 Rust 端可拿到原始 client 資訊（cf. `contracts/nginx-routes.md` § 反代 Header 注入）。
 - **FR-123**: `location /` MUST 走 SPA fallback (`try_files $uri $uri/ /index.html`)，避免 history mode router refresh 404。
 - **FR-124**: `location = /health` MUST 直接 `return 200 "ok\n"`、`access_log off`，給 docker healthcheck 用。
 - **FR-125**: nginx MUST **不**設定任何 `Access-Control-*` header — CORS 由同源解決，違反即違反 constitution §I。
@@ -148,7 +148,7 @@
 - **FR-131**: 必填欄位（POSTGRES_PASSWORD / REDIS_PASSWORD / JWT_SECRET）MUST 在 compose.yaml 用 `${VAR:?must set VAR}` 語法強制。
 - **FR-132**: 可選欄位（POSTGRES_DB / POSTGRES_USER / WEB_PORT / TZ / RUST_LOG / JWT_EXPIRE / DATABASE_MAX_CONNECTIONS / VITE_APP_TITLE / VITE_AUTH_ROUTE_MODE / VITE_STATIC_SUPER_ROLE）MUST 用 `${VAR:-default}` 給安全 fallback。
 - **FR-133**: `.env.example` MUST 不包含真實 secret（POSTGRES_PASSWORD 用 `change-me-strong-password` 之類提示字串）。
-- **FR-134**: TZ MUST 預設為 `Asia/Taipei`（依 constitution「跨平台相容」與 INTEGRATION-PLAN 慣例）。
+- **FR-134**: TZ MUST 由 operator 顯式指定（compose 用 `${TZ:?must set TZ}`，**無 default fallback**）；建議值 `Asia/Taipei`。理由：跨地區部署的 log timestamp 對齊與 postgres TIMESTAMP 行為一致性無法依賴隱式預設（cf. `contracts/env-variables.md` § 必填變數 + 「為何 TZ 改必填」段）。
 
 #### 跨平台與相容（FR-140 ~ FR-149）
 
@@ -192,7 +192,7 @@
 
 ### 對其他 feature 的依賴（明列以利 plan 階段排序）
 
-- **依賴 feature 6 (dockerfile-envsubst)**：new-admin-rust-api 容器要能成功啟動，需要 admin-api 的 Dockerfile 改造為 envsubst template + entrypoint.sh + application.yaml.tpl。本 feature 只負責 outer 端設定正確；admin-rust-api 容器啟動的 acceptance 屬 feature 6。
+- **依賴 feature 6 (dockerfile-envsubst)**：new-admin-rust-api 容器要能成功啟動，需要 admin-api 的 Dockerfile 改造為 envsubst template + entrypoint.sh + application.yaml.tpl。本 feature 只負責 outer 端設定正確；new-admin-rust-api 容器啟動的 acceptance 屬 feature 6。
 - **依賴 feature 7 (admin-web-dockerfile，新增)**：new-admin-base-web image 的 multi-stage Dockerfile（pnpm build → nginx serve，INTEGRATION-PLAN §5.4）將由新增的 feature 7 處理，排在 feature 5 後、feature 6 前。本 feature 範圍只到「compose.yaml 引用該 Dockerfile + nginx/default.conf 透過 build context COPY 進 image」的契約面；prod 模式完整啟動的 acceptance 屬 feature 7。**roadmap 由 6-feature 擴為 7-feature**（待同步更新 `docs/INTEGRATION-CHECKLIST.md`）。
 - **不涵蓋 GAP-0a~0d、GAP-0f、GAP-1~4**：屬 features 2/3/4/5。
 

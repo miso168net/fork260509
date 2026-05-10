@@ -14,12 +14,12 @@
 | S1 | `postgres` | `postgres:17.4-alpine` | — | `5432:5432` | `unless-stopped` | `pg_isready` 10s/5s/10/30s | — |
 | S2 | `redis` | `redis:7.4-alpine` | — | `6379:6379` | `unless-stopped` | `redis-cli ping` 10s/5s/10/5s | — |
 | S3 | `migration` | build from `../admin-api/Dockerfile` (target=build) | — | — | `"no"`（init container） | — | postgres: `service_healthy` |
-| S4 | `admin-rust-api` | build from `../admin-api/Dockerfile` | — | `10001:10001` | `unless-stopped` | `wget /health` 15s/5s/5/30s | postgres: healthy / redis: healthy / migration: completed_successfully |
-| S5 | `admin-base-web` | build from `../admin-web/Dockerfile`（feature 7 提供） | `${WEB_PORT:-8080}:80` | profile=`never`（dev 不啟） | `unless-stopped` | （nginx HEALTHCHECK 在 Dockerfile，feature 7 內建） | admin-rust-api: healthy |
+| S4 | `new-admin-rust-api` | build from `../admin-api/Dockerfile` | — | `10001:10001` | `unless-stopped` | `wget /health` 15s/5s/5/30s | postgres: healthy / redis: healthy / migration: completed_successfully |
+| S5 | `new-admin-base-web` | build from `../admin-web/Dockerfile`（feature 7 提供） | `${WEB_PORT:-8080}:80` | profile=`never`（dev 不啟） | `unless-stopped` | （nginx HEALTHCHECK 在 Dockerfile，feature 7 內建） | new-admin-rust-api: healthy |
 
 **Service 屬性說明**：
 - **healthcheck 格式** `interval/timeout/retries/start_period`，源自 `research.md R2`。
-- **restart policy** 統一 `unless-stopped`（admin-rust-api / admin-base-web / postgres / redis），唯獨 migration 用 `"no"`（依 R1 init container 模型）— spec FR-112 已鎖。
+- **restart policy** 統一 `unless-stopped`（new-admin-rust-api / new-admin-base-web / postgres / redis），唯獨 migration 用 `"no"`（依 R1 init container 模型）— spec FR-112 已鎖。
 - **build context**：S3 / S4 從 `../admin-api/`、S5 從 `../admin-web/`。compose.yaml 在 `deploy/` 下，故 context 用 `..` 上溯一層到 outer repo 根 → 進 admin-api / admin-web worktree（這兩個是 git worktree + submodule，runtime 是普通目錄）。
 
 ---
@@ -45,14 +45,14 @@
 
 **DNS 解析行為**（依 research.md R3）：
 - docker embedded DNS（`127.0.0.11`）為每個 service 註冊 short name + `<service>.admin-net` FQDN。
-- 跨 service 通訊用 service name（如 `postgres:5432`、`admin-rust-api:10001`），**不寫 IP**。
+- 跨 service 通訊用 service name（如 `postgres:5432`、`new-admin-rust-api:10001`），**不寫 IP**。
 
 ---
 
 ## 4. Service-to-Service Dependency Graph
 
 ```
-postgres (healthy) ──┬──> migration (completed) ──> admin-rust-api (healthy) ──> admin-base-web
+postgres (healthy) ──┬──> migration (completed) ──> new-admin-rust-api (healthy) ──> new-admin-base-web
 redis (healthy) ─────┘                              ↑
                                                     │ (內網互通)
                                           (postgres / redis 直連)
@@ -63,10 +63,10 @@ redis (healthy) ─────┘                              ↑
 | From | To | Condition | 說明 |
 |---|---|---|---|
 | migration | postgres | service_healthy | migration 必須等 DB 就緒才能跑 schema |
-| admin-rust-api | postgres | service_healthy | runtime DB 連線 |
-| admin-rust-api | redis | service_healthy | runtime cache / token store |
-| admin-rust-api | migration | service_completed_successfully | schema 必須先建好 |
-| admin-base-web | admin-rust-api | service_healthy | nginx 反代目標就緒才開放對外（避免大量 502） |
+| new-admin-rust-api | postgres | service_healthy | runtime DB 連線 |
+| new-admin-rust-api | redis | service_healthy | runtime cache / token store |
+| new-admin-rust-api | migration | service_completed_successfully | schema 必須先建好 |
+| new-admin-base-web | new-admin-rust-api | service_healthy | nginx 反代目標就緒才開放對外（避免大量 502） |
 
 ---
 
@@ -75,8 +75,8 @@ redis (healthy) ─────┘                              ↑
 | Service | Build Context Path | git submodule pin（HEAD） |
 |---|---|---|
 | migration | `../admin-api` | `42fb7b37a03d68a257b97bcc1a883ba96f26aa7f` 或更新（feature 4/6 推進後變動） |
-| admin-rust-api | `../admin-api` | 同上 |
-| admin-base-web | `../admin-web` | `40e9764a83f8b1d4f59cc8aba1b6dd7bb7b8887a` 或更新（feature 2/5/7 推進後變動） |
+| new-admin-rust-api | `../admin-api` | 同上 |
+| new-admin-base-web | `../admin-web` | `40e9764a83f8b1d4f59cc8aba1b6dd7bb7b8887a` 或更新（feature 2/5/7 推進後變動） |
 
 **重要**：build 行為依賴**當前 outer repo 看到的 submodule pin 對應 commit**。CI 應在 `git checkout --recurse-submodules` 後 build，避免拿到舊版 source。
 
@@ -108,10 +108,10 @@ redis (healthy) ─────┘                              ↑
 [migration] ──cargo run -p migration──> [exited 0]
                                           │
                                           ▼
-[admin-rust-api] ──wget /health──> [healthy]
+[new-admin-rust-api] ──wget /health──> [healthy]
                                           │
                                           ▼
-[admin-base-web] ──nginx HEALTHCHECK──> [healthy]
+[new-admin-base-web] ──nginx HEALTHCHECK──> [healthy]
                                           │
                                           ▼
 [stack ready]   ←── operator 此時可從 host 訪問 :8080
@@ -119,8 +119,8 @@ redis (healthy) ─────┘                              ↑
 
 **異常路徑**：
 - postgres healthcheck 重試 10 次後仍 unhealthy → migration 不啟、後續鏈條斷 → operator 看 `docker compose logs postgres` 找原因（密碼錯 / volume 損毀 / port 衝突）。
-- migration `Exited 1` → admin-rust-api 不啟 → operator 看 `docker compose logs migration` 找 schema 錯誤（多半是 admin-api 倉的 migration code bug）。
-- admin-rust-api healthcheck 失敗 → admin-base-web 不對外 → operator 看 `docker compose logs admin-rust-api` 找 panic / config 錯誤（多半是 envsubst 沒就位、應已由 feature 6 處理）。
+- migration `Exited 1` → new-admin-rust-api 不啟 → operator 看 `docker compose logs migration` 找 schema 錯誤（多半是 admin-api 倉的 migration code bug）。
+- new-admin-rust-api healthcheck 失敗 → new-admin-base-web 不對外 → operator 看 `docker compose logs new-admin-rust-api` 找 panic / config 錯誤（多半是 envsubst 沒就位、應已由 feature 6 處理）。
 
 ---
 

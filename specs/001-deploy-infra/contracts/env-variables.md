@@ -11,10 +11,10 @@
 
 | Var | 類型 | 範例值（`.env.example` 寫法） | Consumer | Fallback | 驗證規則 |
 |---|---|---|---|---|---|
-| `POSTGRES_PASSWORD` | string | `change-me-strong-password` | postgres image (POSTGRES_PASSWORD env)、admin-rust-api（組 DATABASE_URL）、migration（同） | **無**（缺則 compose 直接 abort） | ≥ 12 字元、含大小寫+數字+符號（建議；compose 不強制） |
-| `REDIS_PASSWORD` | string | `change-me-redis-password` | redis（`--requirepass`）、admin-rust-api（組 REDIS_URL） | 無 | ≥ 16 字元、隨機（建議） |
-| `JWT_SECRET` | string | `change-me-jwt-secret-at-least-32-chars` | admin-rust-api（簽 JWT） | 無 | ≥ 32 字元（HS256 安全下限） |
-| `TZ` | IANA timezone | `Asia/Taipei` | postgres / redis / admin-rust-api 三個 service 的 TZ env | 無（為了強制 operator 顯式選） | 必須是有效 IANA tz（如 `Asia/Taipei` / `UTC` / `Europe/London`） |
+| `POSTGRES_PASSWORD` | string | `change-me-strong-password` | postgres image (POSTGRES_PASSWORD env)、new-admin-rust-api（組 DATABASE_URL）、migration（同） | **無**（缺則 compose 直接 abort） | ≥ 12 字元、含大小寫+數字+符號（建議；compose 不強制） |
+| `REDIS_PASSWORD` | string | `change-me-redis-password` | redis（`--requirepass`）、new-admin-rust-api（組 REDIS_URL） | 無 | ≥ 16 字元、隨機（建議） |
+| `JWT_SECRET` | string | `change-me-jwt-secret-at-least-32-chars` | new-admin-rust-api（簽 JWT） | 無 | ≥ 32 字元（HS256 安全下限） |
+| `TZ` | IANA timezone | `Asia/Taipei` | postgres / redis / new-admin-rust-api 三個 service 的 TZ env | 無（為了強制 operator 顯式選） | 必須是有效 IANA tz（如 `Asia/Taipei` / `UTC` / `Europe/London`） |
 
 **為何 TZ 改必填**：原 INTEGRATION-PLAN §5.1 用 `${TZ:-Asia/Taipei}`（可選 + fallback）。本 contract 升為必填，理由：跨地區部署 / log timestamp 對齊 / postgres 內 TIMESTAMP 行為一致性，三者任一錯了都難排查；強制顯式設定避免「忘記改」。
 
@@ -24,18 +24,18 @@
 
 | Var | 類型 | Default | Consumer | 用途 |
 |---|---|---|---|---|
-| `POSTGRES_DB` | string | `new_admin` | postgres / admin-rust-api / migration | 資料庫名 |
+| `POSTGRES_DB` | string | `new_admin` | postgres / new-admin-rust-api / migration | 資料庫名 |
 | `POSTGRES_USER` | string | `admin` | 同上 | 資料庫超級使用者（dev 用；prod 應改 application 用 user） |
-| `WEB_PORT` | int | `8080` | admin-base-web 對外 port | 對外 HTTP 入口 port |
-| `RUST_LOG` | string | `info` | admin-rust-api | log level（trace/debug/info/warn/error） |
-| `JWT_EXPIRE` | int (秒) | `7200` | admin-rust-api | access token TTL |
-| `DATABASE_MAX_CONNECTIONS` | int | `10` | admin-rust-api | Sea-ORM pool 上限（admin tool 流量低，10 夠用） |
-| `JWT_ISSUER` | URL | `https://github.com/your-org/new-admin` | admin-rust-api | JWT iss claim |
-| `VITE_APP_TITLE` | string | `NewAdmin` | admin-base-web Dockerfile build args | 瀏覽器 tab title |
+| `WEB_PORT` | int | `8080` | new-admin-base-web 對外 port | 對外 HTTP 入口 port |
+| `RUST_LOG` | string | `info` | new-admin-rust-api | log level（trace/debug/info/warn/error） |
+| `JWT_EXPIRE` | int (秒) | `7200` | new-admin-rust-api | access token TTL |
+| `DATABASE_MAX_CONNECTIONS` | int | `10` | new-admin-rust-api | Sea-ORM pool 上限（admin tool 流量低，10 夠用） |
+| `JWT_ISSUER` | URL | `https://github.com/your-org/new-admin` | new-admin-rust-api | JWT iss claim |
+| `VITE_APP_TITLE` | string | `NewAdmin` | new-admin-base-web Dockerfile build args | 瀏覽器 tab title |
 | `VITE_AUTH_ROUTE_MODE` | enum | `static` | 同上 | `static`（前端定義路由）/ `dynamic`（後端推路由） |
 | `VITE_STATIC_SUPER_ROLE` | string | `R_SUPER` | 同上 | 靜態模式下的 super role code |
 
-> dev override 不引入新變數，但會用相同 `.env`（pgsql / redis / admin-rust-api 三個 service 在 dev 模式下對 host 暴露 port，仍從同一 `.env` 讀 PASSWORD 等）。
+> dev override 不引入新變數，但會用相同 `.env`（pgsql / redis / new-admin-rust-api 三個 service 在 dev 模式下對 host 暴露 port，仍從同一 `.env` 讀 PASSWORD 等）。
 
 ---
 
@@ -52,7 +52,7 @@
  build args (VITE_*)                              runtime env (POSTGRES_*, REDIS_*, JWT_*)
      │                                                  │
      ▼                                                  ▼
- admin-base-web image (vite 固化)              admin-rust-api / postgres / redis container
+ new-admin-base-web image (vite 固化)              new-admin-rust-api / postgres / redis container
                                                         │
                                                         ▼
                                               （feature 6 完成後）envsubst → application.yaml
@@ -60,7 +60,7 @@
 
 **關鍵時序**：
 - VITE_* 是 **build-time**（Dockerfile 用 ARG + ENV 接，vite build 時固化進 dist），改 VITE_* 必須 rebuild image 才生效。
-- 其他變數是 **runtime**（compose 啟動時讀 .env、塞 container env），改後 `docker compose restart <service>` 即可生效（admin-rust-api 還需要 envsubst 重渲 yaml，feature 6 處理）。
+- 其他變數是 **runtime**（compose 啟動時讀 .env、塞 container env），改後 `docker compose restart <service>` 即可生效（new-admin-rust-api 還需要 envsubst 重渲 yaml，feature 6 處理）。
 
 ---
 

@@ -24,18 +24,18 @@ depends_on:
 
 **Rationale**:
 - `service_healthy` 強制等 healthcheck 連續綠才推進，比舊版 `depends_on: [postgres]` 純啟動順序更可靠。
-- `service_completed_successfully` 是 init container 模型的關鍵：admin-rust-api 必須等 migration `Exited (0)` 後才起，避免「app 啟動時 schema 還沒就緒」的 race。
-- 失敗回饋：若 migration `Exited (1)`，compose 會 abort 整個 stack，operator 立即看到錯誤；不會讓 admin-rust-api 在 schema 缺失下啟動。
+- `service_completed_successfully` 是 init container 模型的關鍵：new-admin-rust-api 必須等 migration `Exited (0)` 後才起，避免「app 啟動時 schema 還沒就緒」的 race。
+- 失敗回饋：若 migration `Exited (1)`，compose 會 abort 整個 stack，operator 立即看到錯誤；不會讓 new-admin-rust-api 在 schema 缺失下啟動。
 
 **Alternatives considered**:
-- `restart: on-failure` 讓 admin-rust-api 自己 retry 等 schema：拒絕。增加非確定性、log 雜訊、不利診斷。
+- `restart: on-failure` 讓 new-admin-rust-api 自己 retry 等 schema：拒絕。增加非確定性、log 雜訊、不利診斷。
 - 用 `wait-for-it.sh` 在 entrypoint 等 DB：拒絕。compose v2 原生 `service_healthy` 已蓋此案例，多一層 sh script 增加維護面。
 
 **Compose 最低版本**: v2.20+（`service_completed_successfully` 自 2022 年起穩定可用；現代 Docker Desktop / Linux package 皆已涵蓋）。在 plan 將 `compose.yaml` 加註釋說明此最低需求。
 
 ---
 
-## R2: Healthcheck 推薦值（postgres / redis / admin-rust-api）
+## R2: Healthcheck 推薦值（postgres / redis / new-admin-rust-api）
 
 **Decision**:
 
@@ -43,12 +43,12 @@ depends_on:
 |---|---|---|---|---|---|
 | postgres | `pg_isready -U $POSTGRES_USER -d $POSTGRES_DB` | 10s | 5s | 10 | 30s |
 | redis | `redis-cli -a $REDIS_PASSWORD ping` | 10s | 5s | 10 | 5s |
-| admin-rust-api | `wget -q -O - http://localhost:10001/health` | 15s | 5s | 5 | 30s |
+| new-admin-rust-api | `wget -q -O - http://localhost:10001/health` | 15s | 5s | 5 | 30s |
 
 **Rationale**:
 - **postgres** `start_period: 30s`：alpine image 冷啟動 + initdb 約 15-25 秒，30 秒留 buffer 避免假性失敗。`retries: 10` × `interval: 10s` = 100 秒給最惡劣 case。
 - **redis** `start_period: 5s`：alpine image 啟動非常快（< 2 秒）。
-- **admin-rust-api** `start_period: 30s`：Rust release binary 啟動 + DB pool 連線約 5-15 秒，30 秒 buffer；`interval: 15s` 比資料層長，因為 admin-rust-api 重啟昂貴。
+- **new-admin-rust-api** `start_period: 30s`：Rust release binary 啟動 + DB pool 連線約 5-15 秒，30 秒 buffer；`interval: 15s` 比資料層長，因為 new-admin-rust-api 重啟昂貴。
 - 對齊 SC-004「migration ≤ 30 秒總耗時」：postgres healthy（30s）+ migration 跑完（< 5s）= ≤ 35s，留 5s margin。
 
 **Alternatives considered**:
@@ -59,18 +59,18 @@ depends_on:
 
 ## R3: nginx → docker service-name DNS 解析
 
-**Decision**: nginx conf 直接寫 `proxy_pass http://admin-rust-api:10001/`，不寫 IP，靠 docker embedded DNS（127.0.0.11）解析 service short name。
+**Decision**: nginx conf 直接寫 `proxy_pass http://new-admin-rust-api:10001/`，不寫 IP，靠 docker embedded DNS（127.0.0.11）解析 service short name。
 
 **Rationale**:
-- Docker compose v2 在每個 user-defined network（admin-net）內為所有 service 自動註冊 short name DNS（`admin-rust-api`、`postgres` 等）+ FQDN（`admin-rust-api.admin-net`）。
+- Docker compose v2 在每個 user-defined network（admin-net）內為所有 service 自動註冊 short name DNS（`new-admin-rust-api`、`postgres` 等）+ FQDN（`new-admin-rust-api.admin-net`）。
 - nginx 1.27 alpine 預設 resolver 從 `/etc/resolv.conf` 取，container 內這就是 `127.0.0.11` → docker DNS。
 
-**Edge case**: nginx 啟動時 admin-rust-api **還沒就緒** → nginx 會在第一個 request 時 DNS resolve、若 service 還沒起就回 502。不會 nginx 啟動失敗。
-- 對策：nginx service 不需要 `depends_on: admin-rust-api`（讓 nginx 先起，502 由 healthcheck `/health`（nginx 自己的 200 ok）保證 nginx 仍 healthy）。
-- 但 spec FR-114 / INTEGRATION-PLAN §5.1 仍把 admin-base-web `depends_on: admin-rust-api: service_healthy` —理由：避免 nginx 啟動後馬上有大量 502，給 user 較好 UX。
+**Edge case**: nginx 啟動時 new-admin-rust-api **還沒就緒** → nginx 會在第一個 request 時 DNS resolve、若 service 還沒起就回 502。不會 nginx 啟動失敗。
+- 對策：nginx service 不需要 `depends_on: new-admin-rust-api`（讓 nginx 先起，502 由 healthcheck `/health`（nginx 自己的 200 ok）保證 nginx 仍 healthy）。
+- 但 spec FR-114 / INTEGRATION-PLAN §5.1 仍把 new-admin-base-web `depends_on: new-admin-rust-api: service_healthy` —理由：避免 nginx 啟動後馬上有大量 502，給 user 較好 UX。
 
 **Alternatives considered**:
-- nginx conf 用 `resolver 127.0.0.11 valid=10s;` + `set $upstream "http://admin-rust-api:10001";` + `proxy_pass $upstream;`：解 service 重啟時 DNS cache 失效問題。**未採用**（admin-rust-api 重啟頻率低、且 docker DNS 本來就會更新；增加 conf 複雜度）。如未來觀察到 stale DNS 問題再加。
+- nginx conf 用 `resolver 127.0.0.11 valid=10s;` + `set $upstream "http://new-admin-rust-api:10001";` + `proxy_pass $upstream;`：解 service 重啟時 DNS cache 失效問題。**未採用**（new-admin-rust-api 重啟頻率低、且 docker DNS 本來就會更新；增加 conf 複雜度）。如未來觀察到 stale DNS 問題再加。
 
 ---
 
@@ -125,21 +125,21 @@ docker compose -f compose.yaml config | head -3   # 應顯示 "name: new-admin-r
 
 ## R6: Dev override 的 profile / never 模式
 
-**Decision**: `compose.dev.yaml` 用 `profiles: ["never"]` 排除 admin-base-web，搭配 `compose -f compose.yaml -f compose.dev.yaml up -d postgres redis migration admin-rust-api` 顯式列要起的 service（不指定 admin-base-web 即可，profile 是雙保險）。
+**Decision**: `compose.dev.yaml` 用 `profiles: ["never"]` 排除 new-admin-base-web，搭配 `compose -f compose.yaml -f compose.dev.yaml up -d postgres redis migration new-admin-rust-api` 顯式列要起的 service（不指定 new-admin-base-web 即可，profile 是雙保險）。
 
 **Rationale**:
 - Profile 機制（compose v1.28+）讓 service 可被 tag、僅在指定 profile active 時啟動。`never` profile 在任何時候都不會被 active（除非 explicitly `--profile never`），等於「永不啟」。
-- 為什麼不直接「dev compose 不起 admin-base-web」？因為 `compose -f a -f b up -d`（不指定 service）會起所有定義的 service。`profiles: ["never"]` 是 yaml 層級的禁令、不依賴 operator 記得只列特定 service。
+- 為什麼不直接「dev compose 不起 new-admin-base-web」？因為 `compose -f a -f b up -d`（不指定 service）會起所有定義的 service。`profiles: ["never"]` 是 yaml 層級的禁令、不依賴 operator 記得只列特定 service。
 
 **Alternatives considered**:
-- 把 admin-base-web 從 dev compose 拿掉：但 dev compose 是 override，不能「移除」prod 已定義的 service，只能改它的設定。
+- 把 new-admin-base-web 從 dev compose 拿掉：但 dev compose 是 override，不能「移除」prod 已定義的 service，只能改它的設定。
 - 用 `replicas: 0` (deploy 模式)：compose 不全支援、且增加複雜度。
 - 用兩份完全獨立的 compose 文件（dev 不繼承 prod）：拒絕。雙份維護成本高、易漂移；override 機制就是為這場景設計的。
 
 **Verification**:
 ```bash
 docker compose -f compose.yaml -f compose.dev.yaml config --services
-# 預期輸出包含 admin-base-web 但 docker compose up -d（無指定）不會起它
+# 預期輸出包含 new-admin-base-web 但 docker compose up -d（無指定）不會起它
 ```
 
 ---
