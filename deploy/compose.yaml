@@ -103,6 +103,27 @@ services:
       start_period: 30s
     # 不設 ports：prod 走同源反代（FR-116）；dev override 由 T010 加 :10001
 
+  new-admin-base-web:
+    build:
+      context: ..                        # outer 倉根（admin-web/Dockerfile 在 admin-web/，feature 7 提供）
+      dockerfile: admin-web/Dockerfile
+      args:
+        VITE_BASE_URL: /
+        VITE_SERVICE_BASE_URL: /api
+        VITE_APP_TITLE: ${VITE_APP_TITLE:-NewAdmin}
+        VITE_AUTH_ROUTE_MODE: ${VITE_AUTH_ROUTE_MODE:-static}
+        VITE_STATIC_SUPER_ROLE: ${VITE_STATIC_SUPER_ROLE:-R_SUPER}
+    image: new-admin-base-web:latest
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"           # 唯一對外 port（同源反代入口，FR-114 + FR-116）
+    depends_on:
+      new-admin-rust-api:
+        condition: service_healthy
+    networks:
+      - admin-net
+    # nginx HEALTHCHECK 由 admin-web/Dockerfile 自帶（feature 7 處理）；compose 不重複設
+
 networks:
   admin-net:
     driver: bridge
