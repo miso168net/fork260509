@@ -18,12 +18,12 @@
 | `new-admin-rust-api` | Rust + axum 後端 | API 主服務 | 10001 | 不暴露 | 10001:10001 |
 | `new-admin-base-web` | nginx + 靜態 dist + reverse proxy | 對外唯一入口 | 80 | `${WEB_PORT:-8080}:80` | profile=`never`（不啟） |
 
-**重要**：service name = **長名**（與 git branch / docker image tag 同樣用 `new-admin-base-web` / `new-admin-rust-api` 慣例）。本契約使用 `new-admin-base-web` / `new-admin-rust-api` 是出於 compose v2 service name 慣例（不前綴 `new-`），**避免與短名 admin-web / admin-api 混淆但與長名一致**。
+**重要**：docker compose service name = **長名** `new-admin-base-web` / `new-admin-rust-api`，與 git branch、docker image tag **完全同名**（依 CLAUDE.md §1 命名分工：服務層面一律用長名，跨命名空間維持一致脈絡）。**避免**與短名 `admin-web` / `admin-api`（worktree 目錄）混淆。
 
 > 命名分工依 CLAUDE.md §1：
 > - **檔案層面用短名**：`admin-web/`、`admin-api/`（worktree 目錄）
-> - **服務層面用長名**：`new-admin-base-web`、`new-admin-rust-api`（compose service / git branch / image tag）
-> - 本契約屬服務層面 → 用長名變體。
+> - **服務層面用長名**：`new-admin-base-web`、`new-admin-rust-api`（compose service / git branch / image tag — 三者同名）
+> - 本契約屬服務層面 → 用長名。
 
 ---
 
@@ -109,8 +109,8 @@ migration:
 
 ## 為何不用容器化常見的 `app` / `db` / `cache` 短名？
 
-- 跨 stack 撞名：`db` 在多 stack 機器上會混淆。
-- 與 git branch / image tag 不一致：`new-admin-base-web` / `new-admin-rust-api` 已存在；compose service 用長名變體（去掉 `new-` 前綴避免冗長）保持一致脈絡。
+- 跨 stack 撞名：`db` / `app` / `cache` 在多 stack 機器上易混淆 / 互相覆蓋。
+- 與 git branch / image tag 不一致：`new-admin-base-web` / `new-admin-rust-api` 已是 git branch 與 image tag 名；docker compose service **與其同名**才能跨命名空間維持一致脈絡（一個 grep 同時命中三處）。
 - 違反「服務層面用長名」慣例（CLAUDE.md §1）。
 
 ---
