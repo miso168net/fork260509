@@ -1,0 +1,78 @@
+# ============================================================
+# new-admin-root prod 主編排
+# - dev override: compose.dev.yaml（T007 加）
+# - 5 service: postgres / redis / migration（本 task 加）+
+#              new-admin-rust-api（T009）+ new-admin-base-web（T011）
+# - 對外 ports：僅 admin-base-web :8080（同源反代，FR-116）
+# - 最低版本：Docker Compose v2.20+（用 service_completed_successfully condition）
+# ============================================================
+
+name: new-admin-root
+
+services:
+  postgres:
+    image: postgres:17.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-new_admin}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?must set POSTGRES_PASSWORD}
+      TZ: ${TZ:?must set TZ}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - admin-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-new_admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command:
+      - "redis-server"
+      - "--requirepass"
+      - "${REDIS_PASSWORD:?must set REDIS_PASSWORD}"
+      - "--appendonly"
+      - "yes"
+    environment:
+      TZ: ${TZ:?must set TZ}
+    volumes:
+      - redis-data:/data
+    networks:
+      - admin-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  migration:
+    build:
+      context: ../admin-api
+      dockerfile: Dockerfile
+      target: build           # 從 admin-api Dockerfile build stage 拿 cargo migration binary
+    image: new-admin-rust-api-build:latest    # share build cache with admin-rust-api（T009 用同 image tag）
+    command: ["cargo", "run", "-p", "migration", "--", "up"]
+    working_dir: /app
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-new_admin}
+      TZ: ${TZ:?must set TZ}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - admin-net
+    restart: "no"             # init container：跑完 exit 0 後不重啟
+
+networks:
+  admin-net:
+    driver: bridge
+
+volumes:
+  pg-data:
+  redis-data:
