@@ -19,3 +19,9 @@ services:
   redis:
     ports:
       - "6379:6379"        # dev 暴露給 host 工具（redis-cli）
+
+  new-admin-rust-api:
+    ports:
+      - "10001:10001"      # dev 暴露給 host vite proxy（/proxy-default → :10001）
+    environment:
+      RUST_LOG: debug      # dev 模式 verbose log，覆蓋 prod 預設 info
