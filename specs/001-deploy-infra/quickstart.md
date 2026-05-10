@@ -70,7 +70,7 @@ docker compose exec postgres psql -U admin -d new_admin -c '\dt'
 
 # 3 個預設 user
 docker compose exec postgres psql -U admin -d new_admin \
-  -c "SELECT user_name FROM sys_user ORDER BY user_name;"
+  -c "SELECT username FROM sys_user ORDER BY username;"
 # 預期 3 筆：Administrator / GeneralUser / Soybean
 ```
 

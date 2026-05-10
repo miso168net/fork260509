@@ -53,7 +53,7 @@ cd deploy && cp .env.example .env && $EDITOR .env  # 填 4 個必填
 docker compose -f compose.yaml -f compose.dev.yaml up -d postgres redis migration
 docker compose ps                                   # postgres/redis healthy、migration Exited(0)
 docker compose exec postgres psql -U admin -d new_admin -c '\dt'                       # ≥ 13 張 sys_* + casbin_rule
-docker compose exec postgres psql -U admin -d new_admin -c "SELECT user_name FROM sys_user;"  # 3 列
+docker compose exec postgres psql -U admin -d new_admin -c "SELECT username FROM sys_user;"  # 3 列
 ```
 
 ### Implementation for User Story 1

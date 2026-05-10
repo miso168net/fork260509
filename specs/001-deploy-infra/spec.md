@@ -34,7 +34,7 @@
 - 在乾淨環境執行 `cp .env.example .env`、填 secrets、`docker compose -f compose.yaml -f compose.dev.yaml up -d postgres redis migration`
 - 執行 `docker compose ps` 看到 postgres/redis healthy、migration `Exited (0)`
 - 執行 `docker compose exec postgres psql -U admin -d new_admin -c '\dt'` 看到 13 張 `sys_*` 表 + `casbin_rule`
-- 執行 `psql ... -c "SELECT user_name FROM sys_user;"` 看到 3 個預設 user（Soybean / Administrator / GeneralUser）
+- 執行 `psql ... -c "SELECT username FROM sys_user;"` 看到 3 個預設 user（Soybean / Administrator / GeneralUser）
 
 **Acceptance Scenarios**:
 
@@ -198,7 +198,7 @@
 
 ### 待驗證的上游慣例（依 constitution §IV）
 
-- [ ] 預設管理員密碼是 `Soybean@123.`（CLAUDE.md §5 待驗證項；本 feature US1 acceptance 會經由 `psql ... SELECT user_name FROM sys_user` 順帶驗到 user 存在，但密碼本身要等 feature 2/3 login flow 完成才能驗）。
+- [ ] 預設管理員密碼是 `Soybean@123.`（CLAUDE.md §5 待驗證項；本 feature US1 acceptance 會經由 `psql ... SELECT username FROM sys_user` 順帶驗到 user 存在，但密碼本身要等 feature 2/3 login flow 完成才能驗）。
 - [ ] Sea-ORM migration 是 idempotent（重跑不報錯不覆寫 seed）— 本 feature US1 acceptance scenario #3 直接驗證。
 - [ ] postgres/redis 的 healthcheck 條件（`pg_isready` / `redis-cli ping -a $PASSWORD`）能在 60 秒內穩定回 healthy — 本 feature 啟動時驗。
 - [ ] `name: new-admin-root` 在 compose 內能避免與其他 stack 同名 service 撞名 — 本 feature 用乾淨環境驗。
