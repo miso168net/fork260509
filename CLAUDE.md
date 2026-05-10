@@ -242,13 +242,13 @@ git submodule status         # 列出兩個 submodule 的 SHA 與 branch
 
 Quick reference（此處可能滯後 CHECKLIST，以 CHECKLIST 為準）：
 
-- 已完成里程碑：outer repo init/push、worktree+submodule、spec-kit v0.8.7、constitution v1.1.0、**feature 1 deploy-infra**（merged 進 new-admin-root，commits `3ff40de..1da3b5c`）
-- 待跑 6 個 features（feature 7 `admin-web-dockerfile` 由 001 clarify Q1 衍生新增）
-- 當前進行中：feature 2 `gap-0ab0f-frontend-env-and-login`（spec + clarify + plan 完成、tasks 待產）
+- 已完成里程碑：outer repo init/push、worktree+submodule、spec-kit v0.8.7、constitution v1.1.0、**feature 1 deploy-infra**（`3ff40de..1da3b5c`）、**feature 2 gap-0ab0f-frontend-env-and-login**（`b873f69..deabfd5`，含 admin-web inner commits `e704988a` `29874dd3`）
+- 待跑 5 個 features
+- 當前進行中：feature 3 `gap-0cd-rust-output-camel`（spec + clarify + plan 完成、tasks 待產）
 
 <!-- SPECKIT START -->
-**Active Spec**: [specs/002-gap-0ab0f-frontend-env-and-login/spec.md](specs/002-gap-0ab0f-frontend-env-and-login/spec.md)
-**Active Plan**: [specs/002-gap-0ab0f-frontend-env-and-login/plan.md](specs/002-gap-0ab0f-frontend-env-and-login/plan.md)
+**Active Spec**: [specs/003-gap-0cd-rust-output-camel/spec.md](specs/003-gap-0cd-rust-output-camel/spec.md)
+**Active Plan**: [specs/003-gap-0cd-rust-output-camel/plan.md](specs/003-gap-0cd-rust-output-camel/plan.md)
 **Phase**: Phase 1 完成（spec + clarify 0-finding gracefully exit + plan + Phase 0 research + Phase 1 data-model/contracts/quickstart）
 **下一步**: `/speckit-tasks` → 產 tasks.md
 <!-- SPECKIT END -->
