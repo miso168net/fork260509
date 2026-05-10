@@ -1,0 +1,66 @@
+# ============================================================
+# 工作區根目錄 .gitignore
+# 此 repo 的目的：追蹤跨倉研究產出（docs / graph / 整合計畫）
+# 4 個 fork 子專案有自己的 git remote，不在此追蹤
+# ============================================================
+
+# --- fork 來源倉（worktree 的源頭，必須留在本機；不在外層追蹤）---
+fork260509-soybean-admin/
+fork260509-soybean-admin-docs/
+fork260509-soybean-admin-nestjs/
+fork260509-soybean-admin-rust/
+
+# --- worktree + submodule 並存 ---
+# admin-web/  是 fork260509-soybean-admin       的 new-admin-base-web 分支 worktree
+# admin-api/  是 fork260509-soybean-admin-rust  的 new-admin-rust-api 分支 worktree
+# 外層 git 把它們當 submodule（gitlink + .gitmodules），追蹤當前使用的 fork SHA。
+# **故意不在這裡擋** — 擋了 git 就 add 不進來。詳細操作手冊見 CLAUDE.md §9
+
+# --- graphify 中可重產與個人化的內容（只保留 graph.json + GRAPH_REPORT.md）---
+graphify-out/cache/
+graphify-out/obsidian/
+graphify-out/.graphify_python
+graphify-out/.graphify_root
+graphify-out/.graphify_*.json
+graphify-out/.needs_update
+# graph.html 約 2.6MB；GitHub web 預覽不友善；如要外發再 commit
+graphify-out/graph.html
+# cost.json 是個人 token 用量帳單；manifest.json 是個人 incremental 基準（mtime/hash 因機而異）
+graphify-out/cost.json
+graphify-out/manifest.json
+
+# --- 一般 OS / 編輯器 ---
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# --- 環境檔（含 secrets）---
+.env
+.env.local
+.env.*.local
+
+# --- 暫存 / log ---
+*.log
+*.tmp
+*.bak
+.cache/
+
+# --- Python 工具暫存（若 root 跑 Python 工具會生）---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- git merge / patch 殘骸 ---
+*.orig
+*.rej
+
+# --- node / pnpm（若日後 root 加 tooling）---
+node_modules/
+.pnpm-store/
