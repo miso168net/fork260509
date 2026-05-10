@@ -22,8 +22,8 @@
 |---|---|
 | 兩個 fork 是否能無縫整合 | ❌ 直接拼**不能 work** — 至少 10 個必修 GAP（含 4 個 critical：response code、field naming、login body、CORS） |
 | 是否值得整合 | ✅ 修完 10 個 GAP（合計 < 200 行 code 變動）後可運行 |
-| 主要風險 | (1) Rust 後端原本就是配 NestJS 前端設計的（README 有官方說明）；standalone admin 是更精簡的 starter，要做的對齊比 NestJS frontend 更多。(2) 預設 success code 是 `200` 不是 `0000`，env 對齊就解決 |
-| 部署拓樸 | 推薦：單機 Docker Compose（postgres + redis + migration init + rust-server + nginx-ui）。dev 模式：infra 三件 + rust-server 用 docker，前端用 vite host 模式 + proxy |
+| 主要風險 | (1) new-admin-rust-api 原本就是配 NestJS 前端設計的（README 有官方說明）；standalone admin 是更精簡的 starter，要做的對齊比 NestJS frontend 更多。(2) 預設 success code 是 `200` 不是 `0000`，env 對齊就解決 |
+| 部署拓樸 | 推薦：單機 Docker Compose（postgres + redis + migration init + new-admin-rust-api + new-admin-base-web）。dev 模式：infra 三件 + new-admin-rust-api 用 docker，admin-web用 vite host 模式 + proxy |
 | 預估工時 | dev pipeline 跑通：~半天；prod compose + smoke test 全綠：~1 天 |
 
 ---
@@ -33,34 +33,34 @@
 ### 1.1 服務元件
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                        host:8080 (HTTP)                       │
-└────────────────────────────┬─────────────────────────────────┘
-                             │
-                  ┌──────────▼──────────┐
-                  │  nginx-ui            │   ← 對外唯一入口
-                  │  - 靜態 dist/        │     1. /          → static SPA
-                  │  - reverse proxy     │     2. /api/*     → rust-server:10001
-                  └──────────┬──────────┘
-                             │ /api/*
-                  ┌──────────▼──────────┐
-                  │  rust-server         │   ← Rust + axum + Casbin
-                  │  port 10001 (intra)  │
-                  └──┬─────────────┬────┘
-                     │             │
-         ┌───────────▼─┐     ┌────▼──────┐
-         │  postgres   │     │  redis    │   ← 6379, AUTH 123456
-         │  port 5432  │     │           │
-         └─────────────┘     └───────────┘
-                     ▲
-         ┌───────────┴────┐
-         │  migration     │   ← run-once init container
-         │  (Sea-ORM)     │     成功後 exit 0
-         └────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        host:8080 (HTTP)                         │
+└────────────────────────────────┬────────────────────────────────┘
+                                 │
+                  ┌──────────────────────────┐
+                  │  new-admin-base-web      │   ← 對外唯一入口
+                  │  - 靜態 dist/            │     1. /          → static SPA
+                  │  - reverse proxy         │     2. /api/*     → new-admin-rust-api:10001
+                  └────────────┬─────────────┘
+                               │ /api/*
+                  ┌──────────────────────────┐
+                  │  new-admin-rust-api      │   ← Rust + axum + Casbin
+                  │  port 10001 (intra)      │
+                  └─────┬──────────────┬─────┘
+                        │              │
+              ┌─────────▼─────┐   ┌────▼────────┐
+              │  postgres     │   │  redis      │   ← 6379, AUTH 123456
+              │  port 5432    │   │             │
+              └───────────────┘   └─────────────┘
+                        ▲
+              ┌─────────┴───────┐
+              │  migration      │   ← run-once init container
+              │  (Sea-ORM)      │     成功後 exit 0
+              └─────────────────┘
 ```
 
 **為何這樣切**：
-- **ui 與 rust-server 同源**（都從 nginx 出去）→ 解決 CORS（GAP-0e）不需在 Rust 加 CorsLayer
+- **new-admin-base-web 與 new-admin-rust-api 同源**（都從 nginx 出去）→ 解決 CORS（GAP-0e）不需在 Rust 加 CorsLayer
 - **migration 獨立成 init container** → 第一次啟動不需 SSH 進去手跑、後續滾動更新自動 schema 升級
 - **redis、postgres 內網不對外** → 預設安全；除錯時可在 dev compose 暴露
 - **不放 pgbouncer** → admin app 流量低，Sea-ORM 自帶 pool（max 10）夠用；要時可加（見選項）
@@ -84,10 +84,10 @@ networks:
 volumes:
   pg-data:          # postgres 持久資料
   redis-data:       # redis 持久資料（appendonly）
-  ui-dist:          # （可選）跨 build/runtime container 共享 ui dist
+  web-dist:          # （可選）跨 build/runtime container 共享 new-admin-base-web dist
 ```
 
-對外只暴露 `nginx-ui` 的 `8080`。其他全在 `admin-net` 內互通。
+對外只暴露 `new-admin-base-web` 的 `8080`。其他全在 `admin-net` 內互通。
 
 ### 1.4 部署拓樸選項
 
@@ -184,7 +184,7 @@ new-admin-root/                  ← 傘狀 repo（== workspace root，僅追蹤
 ```bash
 cd /home/anew/x_Project/fork260509       # workspace root
 
-# === ui worktree ===
+# === admin-web worktree ===
 cd fork260509-soybean-admin
 git fetch origin                          # 確保拿到最新
 git worktree add -b new-admin-base-web ../admin-web    # 從 HEAD 開分支 new-admin-base-web，checkout 到 ../admin-web
@@ -274,44 +274,44 @@ git commit -m "init: register admin-web/admin-api as submodules"
 | 對象 | 處理 |
 |---|---|
 | `fork260509-soybean-admin-docs` | **不納入**。是上游官方文件站，跟我們的 admin 無直接關係。要保留時放外部 reference link 即可 |
-| `fork260509-soybean-admin-nestjs` | **不納入**，但**留為參考**：它的 `frontend/src/service/api/system-manage.ts` 是未來 ui 擴充管理頁面時的 API client 範本（複製過去改 2 條 endpoint 即可） |
+| `fork260509-soybean-admin-nestjs` | **不納入**，但**留為參考**：它的 `frontend/src/service/api/system-manage.ts` 是未來 new-admin-base-web 擴充管理頁面時的 API client 範本（複製過去改 2 條 endpoint 即可） |
 
 ---
 
 ## 4. 完整 GAP 清單與修補方案
 
-從 graphify 圖譜 + 直接讀 `Res<T>` / `LoginInput` / `AuthOutput` / 前端 `auth/index.ts` 對比後發現 **10 個 GAP**（比原 INTEGRATION-RESEARCH.md 的 4 個更全面）：
+從 graphify 圖譜 + 直接讀 `Res<T>` / `LoginInput` / `AuthOutput` / admin-web `auth/index.ts` 對比後發現 **10 個 GAP**（比原 INTEGRATION-RESEARCH.md 的 4 個更全面）：
 
 ### 概觀
 
 | # | GAP | 嚴重度 | 推薦修法 | 改動規模 |
 |---|---|---|---|---|
-| 0a | response success code (`'0000'` vs `200`) | 🔴 critical | 改 ui `.env` | 1 行 |
-| 0b | error code 類別（logout/expired/modal） | 🔴 critical | 改 ui `.env` | 3 行 |
+| 0a | response success code (`'0000'` vs `200`) | 🔴 critical | 改 admin-web `.env` | 1 行 |
+| 0b | error code 類別（logout/expired/modal） | 🔴 critical | 改 admin-web `.env` | 3 行 |
 | 0c | `AuthOutput.refresh_token` 駝峰問題 | 🔴 critical | Rust serde rename | 1 行 |
 | 0d | `UserInfoOutput` 缺 `buttons` | 🟡 major | Rust 加欄位（空陣列） | 2 行 |
 | 0e | Rust 沒 CORS layer | 🟡 major | nginx 同源（推薦）/ tower-http CorsLayer（備案） | 0 行（同源）/ 5 行 |
-| 0f | login body field 名稱（`userName` vs `identifier`） | 🔴 critical | 改 ui `auth.ts` | 1 行 |
+| 0f | login body field 名稱（`userName` vs `identifier`） | 🔴 critical | 改 admin-web `auth.ts` | 1 行 |
 | 1 | `POST /auth/refreshToken` 不存在 | 🔴 critical | Rust 加 handler（複用 `sys_tokens` 表） | ~80 行 |
-| 2 | `GET /auth/error` 不存在 | 🟢 minor | ui 刪掉 `fetchCustomBackendError` | -8 行 |
-| 3 | `GET /route/isRouteExist` 不存在 | 🟡 major | ui 改成本地查 routeStore | ~15 行 |
-| 4 | `/route/getUserRoutes` 路徑不一致 | 🟡 major | ui 改成 `/auth/getUserRoutes` | 1 行 |
+| 2 | `GET /auth/error` 不存在 | 🟢 minor | admin-web 刪掉 `fetchCustomBackendError` | -8 行 |
+| 3 | `GET /route/isRouteExist` 不存在 | 🟡 major | admin-web 改成本地查 routeStore | ~15 行 |
+| 4 | `/route/getUserRoutes` 路徑不一致 | 🟡 major | admin-web 改成 `/auth/getUserRoutes` | 1 行 |
 
 **累計**：~110 行 code + ~5 行 env
 
 ### GAP-0a：success code
 
-**問題**：Rust `Res::new_data` 設 `code = StatusCode::OK.as_u16() = 200`。前端 `.env` 寫 `VITE_SERVICE_SUCCESS_CODE=0000`，前端會把所有成功 response 當失敗。
+**問題**：Rust `Res::new_data` 設 `code = StatusCode::OK.as_u16() = 200`。admin-web `.env` 寫 `VITE_SERVICE_SUCCESS_CODE=0000`，admin-web會把所有成功 response 當失敗。
 
 | 選項 | 方案 | 推薦 |
 |---|---|---|
-| A | ui `.env.prod`：`VITE_SERVICE_SUCCESS_CODE=200` | ⭐ |
+| A | admin-web `.env.prod`：`VITE_SERVICE_SUCCESS_CODE=200` | ⭐ |
 | B | Rust `Res::new_data` 改設 `code = 0` 並另寫字串 `"0000"` | 違反 HTTP semantics |
 | C | Rust 包一層 outer enveloper，code 用業務碼 | 過度工程 |
 
 ### GAP-0b：error code 類別
 
-**問題**：前端預設：
+**問題**：admin-web預設：
 
 ```
 VITE_SERVICE_LOGOUT_CODES=8888,8889
@@ -322,18 +322,18 @@ VITE_SERVICE_EXPIRED_TOKEN_CODES=9999,9998,3333
 Rust 用 HTTP status codes：401（unauthorized）、403（forbidden）、404、500。
 
 **對齊策略**：
-- token 過期 → Rust 401 `"Unauthorized"` → 前端應 refresh token
-- 無權限 → Rust 403 → 前端不應 logout、應顯示 403 頁
+- token 過期 → Rust 401 `"Unauthorized"` → admin-web應 refresh token
+- 無權限 → Rust 403 → admin-web不應 logout、應顯示 403 頁
 - 其他 4xx/5xx → 顯示 toast
 
 | 選項 | 方案 | 推薦 |
 |---|---|---|
-| A | ui `.env.prod`：`VITE_SERVICE_EXPIRED_TOKEN_CODES=401`、`VITE_SERVICE_LOGOUT_CODES=`（清空）、`VITE_SERVICE_MODAL_LOGOUT_CODES=`（清空） | ⭐ |
+| A | admin-web `.env.prod`：`VITE_SERVICE_EXPIRED_TOKEN_CODES=401`、`VITE_SERVICE_LOGOUT_CODES=`（清空）、`VITE_SERVICE_MODAL_LOGOUT_CODES=`（清空） | ⭐ |
 | B | Rust 建立業務碼層級（401 內細分為「token 過期」vs「token 無效」） | 改 Rust 5 個檔，未來再說 |
 
 ### GAP-0c：`AuthOutput.refresh_token` 駝峰問題
 
-**問題**：Rust serialize 出來會是 `{"token": "...", "refresh_token": "..."}`，前端 store `loginToken.refreshToken` 會是 `undefined`。
+**問題**：Rust serialize 出來會是 `{"token": "...", "refresh_token": "..."}`，admin-web store `loginToken.refreshToken` 會是 `undefined`。
 
 **檔案**：`server/model/src/admin/output/sys_authentication.rs`
 
@@ -341,7 +341,7 @@ Rust 用 HTTP status codes：401（unauthorized）、403（forbidden）、404、
 |---|---|---|
 | A | 加 `#[serde(rename_all = "camelCase")]` derive | ⭐ |
 | B | 加 `#[serde(rename = "refreshToken")]` 在欄位上 | 同樣可行、稍冗 |
-| C | 改前端 type 接 `refresh_token`（snake） | 整套前端 types 都要改、不推薦 |
+| C | 改admin-web type 接 `refresh_token`（snake） | 整套admin-web types 都要改、不推薦 |
 
 **Patch**：
 
@@ -359,7 +359,7 @@ pub struct AuthOutput {
 
 ### GAP-0d：`UserInfoOutput` 缺 `buttons`
 
-**問題**：前端 `Api.Auth.UserInfo`：
+**問題**：admin-web `Api.Auth.UserInfo`：
 
 ```ts
 interface UserInfo {
@@ -374,7 +374,7 @@ interface UserInfo {
 |---|---|---|
 | A | Rust 加空陣列欄位 | ⭐（現在沒按鈕級權限就先給 `[]`） |
 | B | 真的實作 button 權限：把每個 menu 的 `meta.buttons` 收集起來 | 未來功能、目前先 placeholder |
-| C | 改前端 type 為 `buttons?: string[]` | 違反前端期望、可能其他元件壞掉 |
+| C | 改admin-web type 為 `buttons?: string[]` | 違反admin-web期望、可能其他元件壞掉 |
 
 **Patch**：
 
@@ -410,7 +410,7 @@ let user_info = UserInfoOutput {
 
 | 選項 | 方案 | 推薦 |
 |---|---|---|
-| **A. 同源 reverse proxy**（推薦） | nginx 把 `/api/*` 反代到 rust-server，瀏覽器只看到 nginx 一個 origin → CORS 不存在 | ⭐ |
+| **A. 同源 reverse proxy**（推薦） | nginx 把 `/api/*` 反代到 new-admin-rust-api，瀏覽器只看到 nginx 一個 origin → CORS 不存在 | ⭐ |
 | B. 在 Rust 開 CorsLayer | 在 `apply_layers` 加 `.layer(CorsLayer::permissive())` 或更嚴格設定 | 開發方便、prod 要小心設 origin allowlist |
 | C. dev 用 vite proxy + prod 用 nginx | dev 跟 prod 行為一致需小心 | dev 模式採此 |
 
@@ -421,7 +421,7 @@ let user_info = UserInfoOutput {
 **問題**：
 
 ```ts
-// 前端 src/service/api/auth.ts
+// admin-web src/service/api/auth.ts
 data: { userName, password }     // ← 送出 {"userName":"Soybean","password":"..."}
 ```
 
@@ -435,7 +435,7 @@ pub struct LoginInput {
 
 | 選項 | 方案 | 推薦 |
 |---|---|---|
-| A | 改前端 `data: { identifier: userName, password }` | ⭐ 1 行 |
+| A | 改admin-web `data: { identifier: userName, password }` | ⭐ 1 行 |
 | B | 改 Rust `pub identifier` → `pub user_name` + `#[serde(rename = "userName")]` | 改 schema 影響其他可能的呼叫者 |
 
 **Patch**：
@@ -462,7 +462,7 @@ export function fetchLogin(userName: string, password: string) {
 |---|---|---|
 | **A. DB-backed refresh**（推薦） | 新 handler 收到 `refreshToken`，查 `sys_tokens.refresh_token` + `status='Active'`，發新 JWT 並 rotate refresh token，更新 `sys_tokens` | ⭐ 與現有 `AccessTokenEvent` 寫入流程對稱、有 audit trail |
 | B. Stateless JWT refresh | refresh_token 改成另一個長效 JWT（exp = 14d），refresh handler 純粹解碼驗簽發新 access token | 較簡、沒 DB I/O；但 revoke 困難 |
-| C. 改長效 JWT 不刷新 | 把 `jwt.expire: 7200` 改 86400+，前端 `fetchRefreshToken` 改 no-op | internal admin 可接受、安全弱 |
+| C. 改長效 JWT 不刷新 | 把 `jwt.expire: 7200` 改 86400+，admin-web `fetchRefreshToken` 改 no-op | internal admin 可接受、安全弱 |
 
 **選 A 的 patch（核心 ~80 行）**：
 
@@ -516,21 +516,21 @@ async fn refresh_token(&self, refresh_token: String) -> Result<AuthOutput, AppEr
 
 ### GAP-2：`GET /auth/error`
 
-**現況**：前端 `fetchCustomBackendError(code, msg)` 把 code/msg 當 query string 送給 `/auth/error`，故意觸發後端回對應錯誤碼來測試攔截器。生產環境不會用。
+**現況**：admin-web `fetchCustomBackendError(code, msg)` 把 code/msg 當 query string 送給 `/auth/error`，故意觸發 admin-api 回對應錯誤碼來測試攔截器。生產環境不會用。
 
 | 選項 | 方案 | 推薦 |
 |---|---|---|
-| **A. 從前端刪除函式**（推薦） | `auth.ts` 刪 `fetchCustomBackendError`，找出 0 個呼叫點即可 | ⭐ |
+| **A. 從admin-web刪除函式**（推薦） | `auth.ts` 刪 `fetchCustomBackendError`，找出 0 個呼叫點即可 | ⭐ |
 | B. Rust 加 5 行 echo handler | `Router::new().route("/error", get(echo_error))` | 仍然只有 dev 用 |
-| C. vite-plugin-mock 在前端模擬 | 開發時攔截 `/auth/error` 回 fake | dev 即可、prod 不需要 |
+| C. vite-plugin-mock 在admin-web模擬 | 開發時攔截 `/auth/error` 回 fake | dev 即可、prod 不需要 |
 
 ### GAP-3：`GET /route/isRouteExist`
 
-**現況**：前端在 `router/guard/route.ts:139` 的 `initRoute()` 內呼叫 `routeStore.getIsAuthRouteExist(to.path)` 判斷 not-found 路由是否其實有權限的存在 → Rust 沒這 endpoint。
+**現況**：admin-web在 `router/guard/route.ts:139` 的 `initRoute()` 內呼叫 `routeStore.getIsAuthRouteExist(to.path)` 判斷 not-found 路由是否其實有權限的存在 → Rust 沒這 endpoint。
 
 | 選項 | 方案 | 評估 |
 |---|---|---|
-| **A. 前端本地查 routeStore**（推薦） | `getIsAuthRouteExist` 改成從本地已 fetch 的 user routes 查 | ⭐ 0 行後端、前端 ~15 行 |
+| **A. admin-web本地查 routeStore**（推薦） | `getIsAuthRouteExist` 改成從本地已 fetch 的 user routes 查 | ⭐ 0 行 admin-api、admin-web ~15 行 |
 | B. Rust 加 endpoint | `sys_menu_route.rs` 加 `.route("/isRouteExist", get(...))`，handler 查 SysMenu | ~30 行 Rust |
 | C. 用 Casbin enforce 替代 | `enforcer.enforce(user, route, "read")` | 語意稍偏：是「是否有權限」不是「是否存在」 |
 
@@ -548,9 +548,9 @@ function getIsAuthRouteExist(routePath: RoutePath) {
 
 | 選項 | 方案 | 推薦 |
 |---|---|---|
-| **A. 改前端**（推薦） | `src/service/api/route.ts:9` `'/route/getUserRoutes'` → `'/auth/getUserRoutes'` | ⭐ 1 行 |
+| **A. 改admin-web**（推薦） | `src/service/api/route.ts:9` `'/route/getUserRoutes'` → `'/auth/getUserRoutes'` | ⭐ 1 行 |
 | B. 改 Rust | 在 `init_protected_menu_router` 加 alias route `/getUserRoutes` | 1 行 Rust |
-| C. 走 `/authorization/getUserRoutes` | Rust 已有；改前端 prefix | 跟 A 等價 |
+| C. 走 `/authorization/getUserRoutes` | Rust 已有；改admin-web prefix | 跟 A 等價 |
 
 ---
 
@@ -612,7 +612,7 @@ services:
       - admin-net
     restart: "no"                  # init container, exit 0 後不重啟
 
-  rust-server:
+  new-admin-rust-api:
     build:
       context: ../admin-api
       dockerfile: Dockerfile
@@ -644,9 +644,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    # 不對外暴露 port，只透過 nginx-ui 反代
+    # 不對外暴露 port，只透過 new-admin-base-web 反代
 
-  nginx-ui:
+  new-admin-base-web:
     build:
       context: ..
       dockerfile: admin-web/Dockerfile
@@ -659,9 +659,9 @@ services:
     image: new-admin-base-web:latest
     restart: unless-stopped
     ports:
-      - "${UI_PORT:-8080}:80"
+      - "${WEB_PORT:-8080}:80"
     depends_on:
-      rust-server:
+      new-admin-rust-api:
         condition: service_healthy
     networks:
       - admin-net
@@ -679,8 +679,8 @@ volumes:
 
 ```yaml
 # Override for local dev:
-#   docker compose -f compose.yaml -f compose.dev.yaml up -d postgres redis migration rust-server
-# 然後在 host 上跑 ui:  cd admin-web && pnpm dev
+#   docker compose -f compose.yaml -f compose.dev.yaml up -d postgres redis migration new-admin-rust-api
+# 然後在 host 上跑 admin-web:  cd admin-web && pnpm dev
 # Vite 會 proxy /proxy-default → http://localhost:10001
 
 name: new-admin-root-dev
@@ -694,14 +694,14 @@ services:
     ports:
       - "6379:6379"        # dev 暴露 redis-cli
 
-  rust-server:
+  new-admin-rust-api:
     ports:
       - "10001:10001"      # dev 暴露給 host vite proxy
     environment:
       RUST_LOG: debug
 
-  # 不需要 nginx-ui — 前端走 host vite dev server
-  nginx-ui:
+  # 不需要 new-admin-base-web — admin-web走 host vite dev server
+  new-admin-base-web:
     profiles: ["never"]    # 用 profile 排除
 ```
 
@@ -878,9 +878,9 @@ server {
         add_header Content-Type text/plain;
     }
 
-    # 反代到 Rust server（同源解 CORS）
+    # 反代到 new-admin-rust-api（同源解 CORS）
     location /api/ {
-        proxy_pass http://rust-server:10001/;
+        proxy_pass http://new-admin-rust-api:10001/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -929,7 +929,7 @@ POSTGRES_PASSWORD=change-me-strong-password
 # --- Redis ---
 REDIS_PASSWORD=change-me-redis-password
 
-# --- Rust server ---
+# --- new-admin-rust-api ---
 JWT_SECRET=change-me-jwt-secret-at-least-32-chars
 JWT_ISSUER=https://github.com/your-org/new-admin
 JWT_EXPIRE=7200                # access token TTL（秒）
@@ -937,7 +937,7 @@ DATABASE_MAX_CONNECTIONS=10
 RUST_LOG=info                  # trace|debug|info|warn|error
 
 # --- UI ---
-UI_PORT=8080                   # 對外暴露 port
+WEB_PORT=8080                   # 對外暴露 port
 VITE_APP_TITLE=NewAdmin
 VITE_AUTH_ROUTE_MODE=static    # static | dynamic
 VITE_STATIC_SUPER_ROLE=R_SUPER
@@ -949,7 +949,7 @@ TZ=Asia/Taipei
 ### 5.7 `admin-web/.env.dev`（取代原 `.env.test`）
 
 ```bash
-# 開發模式：vite dev server + proxy 到 docker 的 rust-server
+# 開發模式：vite dev server + proxy 到 docker 的 new-admin-rust-api
 VITE_BASE_URL=/
 VITE_APP_TITLE=NewAdmin (dev)
 VITE_APP_DESC=NewAdmin development environment
@@ -959,7 +959,7 @@ VITE_PROXY_LOG=Y
 VITE_SERVICE_BASE_URL=http://localhost:10001
 VITE_OTHER_SERVICE_BASE_URL='{"demo": "http://localhost:10001"}'
 
-# === 對齊 Rust 後端 ===
+# === 對齊 new-admin-rust-api ===
 VITE_SERVICE_SUCCESS_CODE=200
 VITE_SERVICE_LOGOUT_CODES=
 VITE_SERVICE_MODAL_LOGOUT_CODES=
@@ -1020,18 +1020,18 @@ VITE_AUTOMATICALLY_DETECT_UPDATE=Y
 0. （前置）已完成 §3.0 worktree 建立（admin-web/ 與 admin-api/ 都存在且分支正確）
 1. cd <workspace>/deploy                     # 從 new-admin-root 根進到 deploy/
 2. cp .env.example .env  &&  vim .env       # 填入 secrets
-3. docker compose build                      # 建 rust-server + ui image
+3. docker compose build                      # 建 new-admin-rust-api + new-admin-base-web image
 4. docker compose up -d postgres redis       # 起資料層
 5. docker compose run --rm migration         # 跑一次 schema + seed
-6. docker compose up -d rust-server nginx-ui # 起 server + ui
+6. docker compose up -d new-admin-rust-api new-admin-base-web # 起 new-admin-rust-api + new-admin-base-web
 7. docker compose ps                         # 檢查 healthcheck 全綠
 ```
 
 預期 timeline：
 - postgres / redis healthy：~30s
 - migration 跑完：~5s
-- rust-server healthy：~15s
-- nginx-ui ready：~3s
+- new-admin-rust-api healthy：~15s
+- new-admin-base-web ready：~3s
 
 ### 6.2 Migration 與 seed 資料
 
@@ -1056,13 +1056,13 @@ Sea-ORM migration 會跑 `migration/src/schemas/` 的 13 張表 + `migration/src
 
 ### 6.3 Casbin endpoint 自動註冊驗證
 
-Rust server boot 後 `router_initialization.rs:328 process_collected_routes()` 把所有掛載 router 的 path/method 寫入 `sys_endpoint` 表。第一次 boot 完跑：
+new-admin-rust-api boot 後 `router_initialization.rs:328 process_collected_routes()` 把所有掛載 router 的 path/method 寫入 `sys_endpoint` 表。第一次 boot 完跑：
 
 ```bash
 docker compose exec postgres psql -U admin -d new_admin -c "SELECT path, method, controller, summary FROM sys_endpoint ORDER BY path;"
 ```
 
-預期可看到 `/auth/login POST`、`/auth/getUserInfo GET`、`/route/getConstantRoutes GET`、`/role/* CRUD`、`/user/* CRUD` 等。沒看到代表 `process_collected_routes` 沒跑成功 → 看 `docker compose logs rust-server`。
+預期可看到 `/auth/login POST`、`/auth/getUserInfo GET`、`/route/getConstantRoutes GET`、`/role/* CRUD`、`/user/* CRUD` 等。沒看到代表 `process_collected_routes` 沒跑成功 → 看 `docker compose logs new-admin-rust-api`。
 
 ### 6.4 Smoke test（7 條 API + login flow）
 
@@ -1108,21 +1108,21 @@ curl -s -o /dev/null -w "%{http_code}\n" \
 ### 7.1 開發模式（推薦工作流）
 
 ```bash
-# Terminal 1：起 infra + rust-server（在 new-admin-root 根）
+# Terminal 1：起 infra + new-admin-rust-api（在 new-admin-root 根）
 cd <workspace>/deploy
-docker compose -f compose.yaml -f compose.dev.yaml up -d postgres redis migration rust-server
+docker compose -f compose.yaml -f compose.dev.yaml up -d postgres redis migration new-admin-rust-api
 
-# Terminal 2：跑前端（host 端，在 admin-web/ worktree）
-cd <workspace>/ui
+# Terminal 2：跑admin-web（host 端，在 admin-web/ worktree）
+cd <workspace>/admin-web
 pnpm install
 pnpm dev   # vite dev server on :9527, proxy /proxy-default → http://localhost:10001
 ```
 
 優點：
-- 前端 hot reload < 1s
+- admin-web hot reload < 1s
 - vite devtools 可用
 - DB 可直接從 host 連 5432（用 DBeaver 等）
-- Rust server 也可改成 host cargo watch（但通常不需要，images 改一次而已）
+- new-admin-rust-api 也可改成 host cargo watch（但通常不需要，images 改一次而已）
 
 ### 7.2 生產模式
 
@@ -1137,8 +1137,8 @@ docker compose up -d
 
 | 元件 | dev | prod |
 |---|---|---|
-| ui | vite dev server (HMR) | nginx static |
-| rust-server | docker compose restart（或 host 跑 `cargo watch -x run`） | image 重 build |
+| new-admin-base-web | vite dev server (HMR) | nginx static |
+| new-admin-rust-api | docker compose restart（或 host 跑 `cargo watch -x run`） | image 重 build |
 | migration | `cargo run -p migration -- up` | init container 自動 |
 
 ---
@@ -1146,7 +1146,7 @@ docker compose up -d
 ## 8. CI/CD outline（每個 repo 各一份 workflow）
 
 > 本計畫採「傘狀 + 兩個 worktree」結構，CI 也分三處：
-> - `fork260509-soybean-admin` 的 `new-admin-base-web` 分支：build ui Docker image → push ghcr
+> - `fork260509-soybean-admin` 的 `new-admin-base-web` 分支：build new-admin-base-web Docker image → push ghcr
 > - `fork260509-soybean-admin-rust` 的 `new-admin-rust-api` 分支：build rust Docker image → push ghcr
 > - `new-admin-root`（傘狀）：lint compose、跑 e2e smoke（拉兩個 image 起來測 §6.4）
 
@@ -1242,7 +1242,7 @@ jobs:
 | Rust 沒有 `/health` endpoint（compose healthcheck 要） | 在 `init_authentication_router` 加 `.route("/health", get(\|\| async { "ok" }))` 或在 `init_admin_router` 最外層加 |
 | nginx 把 `/api/auth/login` proxy 到 rust 的 `/auth/login` 沒問題；但若上游 path 改變要小心 | 在 nginx 加註解 + e2e smoke test 涵蓋 |
 | Casbin 對 super role `R_SUPER` 預設怎麼處理？ | Read `casbin_rule` seed migration 確認超級角色繞過邏輯 |
-| 前端 `R_SUPER` 是 static 模式才生效（`VITE_AUTH_ROUTE_MODE=static`）；切 dynamic 行為不同 | dev 與 prod 都鎖 static、切 dynamic 時做完整回歸 |
+| admin-web `R_SUPER` 是 static 模式才生效（`VITE_AUTH_ROUTE_MODE=static`）；切 dynamic 行為不同 | dev 與 prod 都鎖 static、切 dynamic 時做完整回歸 |
 | pnpm-workspace 在 Docker build 中要 mount 整個 admin-web/ 才能 resolve `@sa/*` workspace package | UI Dockerfile 已處理（先 COPY packages/ 再 install） |
 
 ### 9.2 護欄（dev 必備）
@@ -1257,11 +1257,11 @@ jobs:
 
 | 階段 | 動作 |
 |---|---|
-| **第一階段**（now） | starter ui + rust，跑通 7 條 API |
-| **第二階段** | 移植 NestJS frontend 的 `system-manage.ts` 到 ui，開啟管理頁面（user/role/menu/endpoint） |
+| **第一階段**（now） | starter new-admin-base-web + new-admin-rust-api，跑通 7 條 API |
+| **第二階段** | 移植 NestJS frontend 的 `system-manage.ts` 到 admin-web，開啟管理頁面（user/role/menu/endpoint） |
 | **第三階段** | 加 HTTPS（nginx 加 SSL or 換 caddy） |
 | **第四階段** | 加 Prometheus exporter（Rust 側用 `axum-prometheus`），Grafana dashboard |
-| **第五階段** | 多 instance：把 nginx 換 traefik、rust-server scale=N、postgres 改 streaming replication |
+| **第五階段** | 多 instance：把 nginx 換 traefik、new-admin-rust-api scale=N、postgres 改 streaming replication |
 | **第六階段** | 多租戶實裝：啟用 `db_helper::get_named_connection`、每個 domain 一條 DB connection string |
 
 ---
@@ -1270,18 +1270,18 @@ jobs:
 
 | 變數 | 用於 | 預設 | 說明 |
 |---|---|---|---|
-| `POSTGRES_DB` | postgres + rust-server | `new_admin` | DB 名 |
-| `POSTGRES_USER` | postgres + rust-server | `admin` | DB 使用者 |
-| `POSTGRES_PASSWORD` | postgres + rust-server | (必填) | DB 密碼 |
-| `REDIS_PASSWORD` | redis + rust-server | (必填) | Redis 密碼 |
-| `JWT_SECRET` | rust-server | (必填) | JWT HS256 密鑰，至少 32 chars |
-| `JWT_ISSUER` | rust-server | github URL | JWT iss |
-| `JWT_EXPIRE` | rust-server | `7200` | access token TTL（秒） |
-| `DATABASE_MAX_CONNECTIONS` | rust-server | `10` | Sea-ORM pool size |
-| `RUST_LOG` | rust-server | `info` | 日誌等級 |
-| `UI_PORT` | nginx-ui | `8080` | host 對外 port |
+| `POSTGRES_DB` | postgres + new-admin-rust-api | `new_admin` | DB 名 |
+| `POSTGRES_USER` | postgres + new-admin-rust-api | `admin` | DB 使用者 |
+| `POSTGRES_PASSWORD` | postgres + new-admin-rust-api | (必填) | DB 密碼 |
+| `REDIS_PASSWORD` | redis + new-admin-rust-api | (必填) | Redis 密碼 |
+| `JWT_SECRET` | new-admin-rust-api | (必填) | JWT HS256 密鑰，至少 32 chars |
+| `JWT_ISSUER` | new-admin-rust-api | github URL | JWT iss |
+| `JWT_EXPIRE` | new-admin-rust-api | `7200` | access token TTL（秒） |
+| `DATABASE_MAX_CONNECTIONS` | new-admin-rust-api | `10` | Sea-ORM pool size |
+| `RUST_LOG` | new-admin-rust-api | `info` | 日誌等級 |
+| `WEB_PORT` | new-admin-base-web | `8080` | host 對外 port |
 | `TZ` | all | `Asia/Taipei` | 時區 |
-| `VITE_*` | ui build | （見 §5.7/5.8） | 前端 build-time env |
+| `VITE_*` | admin-web build | （見 §5.7/5.8） | admin-web build-time env |
 
 ## 附錄 B：完整檔案清單對照（worktree 模型）
 
@@ -1364,7 +1364,7 @@ jobs:
 { "code": 200, "data": { ... }, "msg": "success", "success": true }
 ```
 
-**前端期望（VITE_SERVICE_SUCCESS_CODE=200 對齊後）**：
+**admin-web期望（VITE_SERVICE_SUCCESS_CODE=200 對齊後）**：
 
 ```ts
 isBackendSuccess: response => String(response.data.code) === '200'   // ✓
@@ -1376,7 +1376,7 @@ isBackendSuccess: response => String(response.data.code) === '200'   // ✓
 { "code": 401, "data": null, "msg": "Unauthorized", "success": false }
 ```
 
-對應前端 `VITE_SERVICE_EXPIRED_TOKEN_CODES=401` 觸發 refresh token 流程。
+對應admin-web `VITE_SERVICE_EXPIRED_TOKEN_CODES=401` 觸發 refresh token 流程。
 
 ---
 
@@ -1384,7 +1384,7 @@ isBackendSuccess: response => String(response.data.code) === '200'   // ✓
 
 本計畫覆蓋從 fork → 修 GAP → docker-compose 編排 → 第一次 boot → smoke test 全鏈路。10 個 GAP 中有 6 個是 1-2 行 env / 1-2 行 code 的微改、2 個是中等改動（refresh handler、isRouteExist 改本地查）、2 個是純 nginx 配置（CORS、reverse proxy）。
 
-**最大的不可逆決策**：選 nginx 同源 vs Rust CorsLayer。同源讓 CORS 永遠不存在、image 多一個 nginx；CorsLayer 讓 ui 與 server 可分離部署、prod 要小心設 origin allowlist。本計畫推薦同源。
+**最大的不可逆決策**：選 nginx 同源 vs Rust CorsLayer。同源讓 CORS 永遠不存在、image 多一個 nginx；CorsLayer 讓 admin-web 與 admin-api 可分離部署、prod 要小心設 origin allowlist。本計畫推薦同源。
 
 **最大的「未引爆地雷」**：refresh token 沒 expires_at；migration 補一次 + handler 檢查即可。
 

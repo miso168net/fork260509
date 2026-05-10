@@ -96,7 +96,7 @@ cp .env.example .env && vim .env       # 填 secrets
 docker compose build
 docker compose up -d postgres redis
 docker compose run --rm migration       # 初始化 schema + seed
-docker compose up -d rust-server nginx-ui
+docker compose up -d new-admin-rust-api new-admin-base-web
 # 對外：http://localhost:8080
 # 預設帳號：Soybean / Soybean@123.（待驗證）
 ```

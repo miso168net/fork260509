@@ -14,6 +14,15 @@
 | `new-admin-base-web` | `fork260509-soybean-admin` 上的新分支 | `admin-web/`（worktree） | push 回 `miso168net/fork260509-soybean-admin` 的 `new-admin-base-web` 分支 | submodule（記 SHA pin） |
 | `new-admin-rust-api` | `fork260509-soybean-admin-rust` 上的新分支 | `admin-api/`（worktree） | push 回 `miso168net/fork260509-soybean-admin-rust` 的 `new-admin-rust-api` 分支 | submodule（記 SHA pin） |
 
+**短名 vs 長名 — 命名用法分工**：實務上有兩組稱呼，依場景挑：
+
+| 用 | 場景 | 例 |
+|---|---|---|
+| **短名** `admin-web` / `admin-api` | 檔案、目錄、source code、worktree dir 等**檔案層面** | `cd admin-web`、`改 admin-web/.env`、`admin-api/server/...` |
+| **長名** `new-admin-base-web` / `new-admin-rust-api` | git branch、docker compose service、image tag、runtime 行為等**服務層面** | `git push origin new-admin-base-web`、`docker compose up new-admin-rust-api`、「new-admin-rust-api 回 code:200」 |
+
+兩者指同一元件、僅描述視角不同。混用一般無妨，但寫文件時依此分工最清楚。
+
 `admin-web/` 與 `admin-api/` 是**worktree + submodule 雙重身分**：
 - **本機**：透過 `git worktree add -b <branch>` 建立，`.git` 是 file 指向源倉的 `worktrees/`，`cd admin-web && git commit/push` 直接寫回 fork repo 的對應分支。
 - **外層 `new-admin-root`**：把它們當 submodule 處理（gitlink + `.gitmodules`），每次外層 commit 紀錄當下使用的 fork SHA。**外層看不到檔案 diff，只看到 SHA pin 變動**。
@@ -85,26 +94,37 @@ fork260509/                                ← workspace root（傘狀 repo new-
 | Database 連線 | 不用 pgbouncer，Sea-ORM 內建 pool 即可 |
 | Refresh token | DB-backed（用既有 `sys_tokens` 表）— 不用 stateless JWT |
 | Migration | init container（`docker compose run --rm migration`） |
-| Dev workflow | docker compose 起 infra+rust-server，host 跑 `pnpm dev`（vite proxy 到 :10001） |
-| Prod workflow | 全 docker compose；對外只暴露 nginx-ui :8080 |
+| Dev workflow | docker compose 起 infra+new-admin-rust-api，host 跑 `pnpm dev`（vite proxy 到 :10001） |
+| Prod workflow | 全 docker compose；對外只暴露 new-admin-base-web :8080 |
 
 **10 個必修 GAP**（清單在 docs/INTEGRATION-PLAN.md §4）。最危險的：
-- GAP-0a：Rust 回 `code:200`，前端要 `'0000'` → 改 `.env`
-- GAP-0c：Rust serialize `refresh_token`（snake），前端要 `refreshToken`（camel） → 加 `#[serde(rename_all = "camelCase")]`
-- GAP-0f：Login body field `userName` vs `identifier` → 改前端 1 行
+- GAP-0a：new-admin-rust-api 回 `code:200`，admin-web 要 `'0000'` → 改 `.env`
+- GAP-0c：new-admin-rust-api serialize `refresh_token`（snake），admin-web 要 `refreshToken`（camel） → 加 `#[serde(rename_all = "camelCase")]`
+- GAP-0f：Login body field `userName` vs `identifier` → 改 admin-web 1 行
 - GAP-1：refresh handler 完全不存在 → ~80 行 Rust
 
-## 5. 預設帳號（dev 用）
+## 5. 操作參考資料 (Operational Reference)
 
-依 `migration/src/datas/m20241024_033005_insert_sys_user.rs`：
+> 此節為 reference data（不是 principle、不是 checklist），放在 CLAUDE.md 是為了讓我每次 session 都直接看到、不用 Read 額外檔案 — 特別是 CDP 自動化登入時要立刻有密碼可用。
+> 驗證待辦在 `docs/INTEGRATION-CHECKLIST.md`；驗完後更新本節。
+
+### 5.1 預設帳號（dev 用）
+
+依 `admin-api/migration/src/datas/m20241024_033005_insert_sys_user.rs`：
 
 | 帳號 | 角色 | 密碼 |
 |---|---|---|
-| `Soybean` | 超級管理員 | `Soybean@123.`（依上游慣例，但要實驗驗證） |
+| `Soybean` | 超級管理員 | `Soybean@123.`（依上游慣例，待驗證） |
 | `Administrator` | admin | 同上 |
 | `GeneralUser` | 一般 | 同上 |
 
 3 個 user 共用同一個 argon2id 雜湊。**驗證後若密碼不同，請更新此處**。
+
+### 5.2 對外 endpoint（待 deploy/ 建好後生效）
+
+- new-admin-base-web：`http://localhost:8080`（變數 `WEB_PORT` 預設 8080）
+- new-admin-rust-api（同源）：`http://localhost:8080/api/*` → nginx 反代到 `new-admin-rust-api:10001`
+- Login API：`POST /api/auth/login` body `{"identifier": "Soybean", "password": "Soybean@123."}`
 
 ## 6. 開發守則（workspace-specific）
 
@@ -214,15 +234,17 @@ git submodule status         # 列出兩個 submodule 的 SHA 與 branch
 - ❌ 不要在 Rust 加 CorsLayer（決策走 nginx 同源；改 CorsLayer 會讓 prod 路徑分歧）。
 - ❌ 不要碰 `fork260509-soybean-admin-docs/` 與 `fork260509-soybean-admin-nestjs/`（不在整合範圍內，留作參考）。
 
-## 8. 該做但目前還沒做
+## 8. 進度追蹤
 
-- [ ] **建立 worktree + submodule 配置**（一次性，跟著 §9 SOP 跑）
-- [ ] 建立 `deploy/` 與裡面的 `compose.yaml` / `nginx/default.conf` / `.env.example`（樣板都在 docs/INTEGRATION-PLAN.md §5）
-- [ ] 修補 10 個 GAP（清單與 patch 在 docs/INTEGRATION-PLAN.md §4；GAP-0 系列要先做才能 login）
-- [ ] 驗證預設密碼是不是 `Soybean@123.`
-- [ ] 驗證 `process_collected_routes()` 是 idempotent upsert（重啟不重複）
-- [ ] 驗證 Rust 是否有 `/health` endpoint（compose healthcheck 需要）
-- [ ] 在 `sys_tokens` 表加 `expires_at` 欄位（refresh token 否則永不過期）
+詳細進度（已完成里程碑、6-feature roadmap、跨 feature 待驗證項）見 `docs/INTEGRATION-CHECKLIST.md`。
+
+**Claude session 開頭先讀該檔了解當前狀態。**
+
+Quick reference（此處可能滯後 CHECKLIST，以 CHECKLIST 為準）：
+
+- 已完成里程碑：outer repo init/push、worktree+submodule、spec-kit v0.8.7、constitution v1.1.0
+- 待跑 6 個 features（依 constitution §III 合併例外條款拆出）
+- 下一步：feature 1 `deploy-infra`
 
 ---
 
