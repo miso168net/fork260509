@@ -21,7 +21,7 @@
 **Storage**: 不適用（本 feature 不寫 application 資料；只設定 named volumes `pg-data` / `redis-data`）
 **Testing**:
 - 靜態：`docker compose config -q`、`nginx -t`（用 `nginx:1.27-alpine` 映像跑）
-- 動態：`docker compose up -d postgres redis migration` + `psql ... \dt` + `SELECT user_name FROM sys_user`
+- 動態：`docker compose up -d postgres redis migration` + `psql ... \dt` + `SELECT username FROM sys_user`
 **Target Platform**: Linux x86_64（CI / production）+ Docker Desktop on Windows/macOS（dev）
 **Project Type**: infrastructure / deployment（outer-only feature，無 source code 改動）
 **Performance Goals**（從 spec SC 抽）:
