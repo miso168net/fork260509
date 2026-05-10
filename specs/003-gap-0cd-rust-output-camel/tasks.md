@@ -44,7 +44,7 @@ description: "Tasks for feature 003-gap-0cd-rust-output-camel"
 ### Inner Commits（在 admin-api/ worktree 內，§V 第一段、admin-api 版）
 
 - [ ] T002 [US1] 在 `admin-api/server/model/src/admin/output/sys_authentication.rs` 改 1 行（GAP-0c）：在 `pub struct AuthOutput` 前的 `#[derive(Clone, Debug, Serialize)]` 後加一行 `#[serde(rename_all = "camelCase")]`。跑 `cd admin-api && cargo check --release` 驗 cargo PASS。在 admin-api/ worktree 內 inner commit：`fix(admin-api): GAP-0c AuthOutput camelCase`（commit message 範本見 quickstart.md §1.3）。
-- [ ] T003 [US1] 在 `admin-api/server/model/src/admin/output/sys_authentication.rs` 加 1 行 field（GAP-0d struct）：在 `UserInfoOutput` 內 `roles` field 後加 `pub buttons: Vec<String>,`。同時在 `admin-api/server/api/src/admin/sys_authentication_api.rs` 改 1 行（GAP-0d handler）：在 `get_user_info` 內 `UserInfoOutput { ... }` 初始化 block 內 `roles: ...` 後加 `buttons: vec![],`。跑 `cargo check --release` 驗 PASS。在 admin-web/ worktree 內 inner commit：`fix(admin-api): GAP-0d UserInfoOutput buttons placeholder`（涉 2 檔合 1 commit；commit message 範本見 quickstart.md §1.3）。
+- [ ] T003 [US1] 在 `admin-api/server/model/src/admin/output/sys_authentication.rs` 加 1 行 field（GAP-0d struct）：在 `UserInfoOutput` 內 `roles` field 後加 `pub buttons: Vec<String>,`。同時在 `admin-api/server/api/src/admin/sys_authentication_api.rs` 改 1 行（GAP-0d handler）：在 `get_user_info` 內 `UserInfoOutput { ... }` 初始化 block 內 `roles: ...` 後加 `buttons: vec![],`。跑 `cargo check --release` 驗 PASS。在 admin-api/ worktree 內 inner commit：`fix(admin-api): GAP-0d UserInfoOutput buttons placeholder`（涉 2 檔合 1 commit；commit message 範本見 quickstart.md §1.3）。
 - [ ] T004 [US1] 在 admin-api/ 跑完整 `cargo build --release` 驗無 break（兩個 inner commits 完成後再跑、確認 release build PASS 對應 SC-301）。
 
 ### Inner Push（§V 第一段尾）
