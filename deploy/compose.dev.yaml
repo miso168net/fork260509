@@ -25,3 +25,6 @@ services:
       - "10001:10001"      # dev 暴露給 host vite proxy（/proxy-default → :10001）
     environment:
       RUST_LOG: debug      # dev 模式 verbose log，覆蓋 prod 預設 info
+
+  new-admin-base-web:
+    profiles: ["never"]    # dev 模式 admin-web 走 host vite，永不啟此 nginx-ui service
