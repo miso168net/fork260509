@@ -16,7 +16,7 @@
 
 | # | feature | 涵蓋 GAP | 倉/層 | 主題 | 規模 | spec | plan | impl | 狀態 |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | `deploy-infra` | (順帶 0e CORS) | outer | docker-compose + nginx + .env.example | 中 | ☐ | ☐ | ☐ | 待 |
+| 1 | `deploy-infra` | (順帶 0e CORS) | outer | docker-compose + nginx + .env.example | 中 | ✅ | ✅ | ✅ | 完成 (3ff40de..1dbd3e9) |
 | 2 | `gap-0ab0f-frontend-env-and-login` | 0a, 0b, 0f | admin-web | admin-web env 對齊 + login body field | 5-7 行 | ☐ | ☐ | ☐ | 待 |
 | 3 | `gap-0cd-rust-output-camel` | 0c, 0d | admin-api | admin-api serialize 對齊 admin-web (camelCase) | ~5 行 | ☐ | ☐ | ☐ | 待 |
 | 4 | `gap-1-refresh-handler` | 1 | admin-api | refresh token endpoint | ~80 行 | ☐ | ☐ | ☐ | 待 |

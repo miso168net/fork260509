@@ -24,7 +24,7 @@ description: "Tasks for feature 001-deploy-infra"
 
 **Purpose**: 建立 outer 倉的 `deploy/` 目錄骨架。
 
-- [ ] T001 在 outer 倉新增 `deploy/` 與 `deploy/nginx/` 目錄（`mkdir -p deploy/nginx`），確認以空 commit 或第一個 task 建檔時自然產生（git 不追蹤空目錄，本 task 不獨立 commit）
+- [x] T001 在 outer 倉新增 `deploy/` 與 `deploy/nginx/` 目錄（`mkdir -p deploy/nginx`），確認以空 commit 或第一個 task 建檔時自然產生（git 不追蹤空目錄，本 task 不獨立 commit）
 
 ---
 
@@ -34,10 +34,10 @@ description: "Tasks for feature 001-deploy-infra"
 
 **⚠️ CRITICAL**: 本階段未完成前，所有 user story 任務不能啟動。
 
-- [ ] T002 寫 `deploy/.env.example`，依 `contracts/env-variables.md` normative：4 個必填變數（POSTGRES_PASSWORD / REDIS_PASSWORD / JWT_SECRET / TZ，含 `change-me-*` 提示）+ 10 個可選變數（POSTGRES_DB / POSTGRES_USER / WEB_PORT / RUST_LOG / JWT_EXPIRE / JWT_ISSUER / DATABASE_MAX_CONNECTIONS / VITE_APP_TITLE / VITE_AUTH_ROUTE_MODE / VITE_STATIC_SUPER_ROLE，附 default + 用途註解）；分區註解清楚標「必填」「可選」。
-- [ ] T003 [P] 確認 outer 倉 `.gitignore` 已涵蓋 `.env`（line 61-63 已存）；補一行 `deploy/.env`（精確 path 防護），並驗證 `git check-ignore deploy/.env` 命中。
-- [ ] T004 [P] 在 outer 倉根新增 `.gitattributes`，鎖 `*.sh` / `*.conf` / `*.yaml` / `*.yml` / `deploy/.env.example` 為 LF（依 research.md R7）；包含 `* text=auto eol=lf`。
-- [ ] T005 [P] 同步 `docs/INTEGRATION-CHECKLIST.md`：roadmap 由 6-feature 改為 7-feature，加入 feature 7 `admin-web-dockerfile`（admin-web 倉、multi-stage Dockerfile、依賴 features 2/5 完成、為 features 1 prod 模式啟動的前置條件），並調整建議實施順序。
+- [x] T002 寫 `deploy/.env.example`，依 `contracts/env-variables.md` normative：4 個必填變數（POSTGRES_PASSWORD / REDIS_PASSWORD / JWT_SECRET / TZ，含 `change-me-*` 提示）+ 10 個可選變數（POSTGRES_DB / POSTGRES_USER / WEB_PORT / RUST_LOG / JWT_EXPIRE / JWT_ISSUER / DATABASE_MAX_CONNECTIONS / VITE_APP_TITLE / VITE_AUTH_ROUTE_MODE / VITE_STATIC_SUPER_ROLE，附 default + 用途註解）；分區註解清楚標「必填」「可選」。
+- [x] T003 [P] 確認 outer 倉 `.gitignore` 已涵蓋 `.env`（line 61-63 已存）；補一行 `deploy/.env`（精確 path 防護），並驗證 `git check-ignore deploy/.env` 命中。
+- [x] T004 [P] 在 outer 倉根新增 `.gitattributes`，鎖 `*.sh` / `*.conf` / `*.yaml` / `*.yml` / `deploy/.env.example` 為 LF（依 research.md R7）；包含 `* text=auto eol=lf`。
+- [x] T005 [P] 同步 `docs/INTEGRATION-CHECKLIST.md`：roadmap 由 6-feature 改為 7-feature，加入 feature 7 `admin-web-dockerfile`（admin-web 倉、multi-stage Dockerfile、依賴 features 2/5 完成、為 features 1 prod 模式啟動的前置條件），並調整建議實施順序。
 
 **Checkpoint**: Foundation 完成，可開始 user story 任務。
 
@@ -58,9 +58,9 @@ docker compose exec postgres psql -U admin -d new_admin -c "SELECT username FROM
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] 在 `deploy/compose.yaml` 寫頂層骨架 + postgres/redis/migration 三 service：包含 `name: new-admin-root`、`networks: admin-net (bridge)`、`volumes: pg-data, redis-data`（依 data-model.md §2/§3）、postgres service（image `postgres:17.4-alpine`、healthcheck `pg_isready` 10/5/10/30、volume mount、env POSTGRES_*、network admin-net）、redis service（image `redis:7.4-alpine`、`command: ["redis-server","--requirepass","${REDIS_PASSWORD:?must set REDIS_PASSWORD}","--appendonly","yes"]`、healthcheck `redis-cli -a $REDIS_PASSWORD ping` 10/5/10/5、volume mount、network）、migration service（build context `../admin-api` target=build、command `cargo run -p migration -- up`、env DATABASE_URL、`depends_on postgres: service_healthy`、`restart: "no"`、network）。
-- [ ] T007 [US1] 在 `deploy/compose.dev.yaml` 寫 dev override 對 postgres/redis：`name: new-admin-root-dev`、`postgres.ports: ["5432:5432"]`、`redis.ports: ["6379:6379"]`（依 INTEGRATION-PLAN §5.2 + research.md R6）。
-- [ ] T008 [US1] 跑 dev 模式 acceptance（spec US1 acceptance scenarios 1-3 + R4 idempotency 部分）：`cp .env.example .env` + 填必填變數 + `docker compose -f compose.yaml -f compose.dev.yaml up -d postgres redis migration` + 驗 healthy/Exited(0) + `psql ... \dt` 計數 ≥ 13 + `psql ... SELECT count(*) FROM sys_user` = 3 + 第二次 `migration up` 驗 idempotent（user 數仍 = 3、表數不變）。把 stdout 截錄存到 commit message body 或新增 `specs/001-deploy-infra/acceptance-evidence/us1.md`（依 constitution §IV「verification 證據」要求）。
+- [x] T006 [US1] 在 `deploy/compose.yaml` 寫頂層骨架 + postgres/redis/migration 三 service：包含 `name: new-admin-root`、`networks: admin-net (bridge)`、`volumes: pg-data, redis-data`（依 data-model.md §2/§3）、postgres service（image `postgres:17.4-alpine`、healthcheck `pg_isready` 10/5/10/30、volume mount、env POSTGRES_*、network admin-net）、redis service（image `redis:7.4-alpine`、`command: ["redis-server","--requirepass","${REDIS_PASSWORD:?must set REDIS_PASSWORD}","--appendonly","yes"]`、healthcheck `redis-cli -a $REDIS_PASSWORD ping` 10/5/10/5、volume mount、network）、migration service（build context `../admin-api` target=build、command `cargo run -p migration -- up`、env DATABASE_URL、`depends_on postgres: service_healthy`、`restart: "no"`、network）。
+- [x] T007 [US1] 在 `deploy/compose.dev.yaml` 寫 dev override 對 postgres/redis：`name: new-admin-root-dev`、`postgres.ports: ["5432:5432"]`、`redis.ports: ["6379:6379"]`（依 INTEGRATION-PLAN §5.2 + research.md R6）。
+- [x] T008 [US1] 跑 dev 模式 acceptance（spec US1 acceptance scenarios 1-3 + R4 idempotency 部分）：`cp .env.example .env` + 填必填變數 + `docker compose -f compose.yaml -f compose.dev.yaml up -d postgres redis migration` + 驗 healthy/Exited(0) + `psql ... \dt` 計數 ≥ 13 + `psql ... SELECT count(*) FROM sys_user` = 3 + 第二次 `migration up` 驗 idempotent（user 數仍 = 3、表數不變）。把 stdout 截錄存到 commit message body 或新增 `specs/001-deploy-infra/acceptance-evidence/us1.md`（依 constitution §IV「verification 證據」要求）。
 
 **Checkpoint**: US1 完成 = MVP 可交付的最小單位（dev 模式資料層）。可獨立 commit + push。
 
@@ -80,8 +80,8 @@ docker compose -f compose.yaml -f compose.dev.yaml config --format json \
 
 ### Implementation for User Story 3
 
-- [ ] T009 [US3] 在 `deploy/compose.yaml` 加入 new-admin-rust-api service：build context `../admin-api`、env DATABASE_URL/REDIS_URL/JWT_SECRET/JWT_ISSUER/JWT_EXPIRE/SERVER_HOST/SERVER_PORT/RUST_LOG/TZ（依 contracts/env-variables.md）、`depends_on postgres: healthy / redis: healthy / migration: completed_successfully`、healthcheck `wget -q -O - http://localhost:10001/health` 15/5/5/30、network admin-net。**不在 prod compose 設 ports**（prod 走同源反代）。
-- [ ] T010 [US3] 在 `deploy/compose.dev.yaml` 加入 new-admin-rust-api dev override：`ports: ["10001:10001"]`、`environment.RUST_LOG: debug`（覆蓋 prod 預設 info）；跑 acceptance 指令確認 `jq` 命中 `10001:10001`。
+- [x] T009 [US3] 在 `deploy/compose.yaml` 加入 new-admin-rust-api service：build context `../admin-api`、env DATABASE_URL/REDIS_URL/JWT_SECRET/JWT_ISSUER/JWT_EXPIRE/SERVER_HOST/SERVER_PORT/RUST_LOG/TZ（依 contracts/env-variables.md）、`depends_on postgres: healthy / redis: healthy / migration: completed_successfully`、healthcheck `wget -q -O - http://localhost:10001/health` 15/5/5/30、network admin-net。**不在 prod compose 設 ports**（prod 走同源反代）。
+- [x] T010 [US3] 在 `deploy/compose.dev.yaml` 加入 new-admin-rust-api dev override：`ports: ["10001:10001"]`、`environment.RUST_LOG: debug`（覆蓋 prod 預設 info）；跑 acceptance 指令確認 `jq` 命中 `10001:10001`。
 
 **Checkpoint**: US3 完成 = dev 模式 vite proxy 對接點就緒（待 feature 6 完成 envsubst 後才可實際 curl）。
 
@@ -107,9 +107,9 @@ docker run --rm -v "$(pwd)/deploy/nginx:/etc/nginx/conf.d:ro" nginx:1.27-alpine 
 
 ### Implementation for User Story 4
 
-- [ ] T011 [US4] 在 `deploy/compose.yaml` 加入 new-admin-base-web service：build context `..`（outer 倉根，因為 admin-web Dockerfile 在 `admin-web/Dockerfile`，content 由 feature 7 提供）、build args（VITE_BASE_URL=`/`、VITE_SERVICE_BASE_URL=`/api`、VITE_APP_TITLE/VITE_AUTH_ROUTE_MODE/VITE_STATIC_SUPER_ROLE）、`ports: ["${WEB_PORT:-8080}:80"]`、`depends_on new-admin-rust-api: service_healthy`、network admin-net、`restart: unless-stopped`。
-- [ ] T012 [US4] 在 `deploy/compose.dev.yaml` 加入 new-admin-base-web dev override：`profiles: ["never"]`（依 research.md R6 — dev 模式 admin-web 走 host vite，new-admin-base-web 永不啟）。
-- [ ] T013 [US4] 寫 `deploy/nginx/default.conf` — 嚴格依 `contracts/nginx-routes.md` normative：`listen 80`、`root /usr/share/nginx/html`、`location = /health` 回 `200 ok`（access_log off）、`location /api/` 反代到 `http://new-admin-rust-api:10001/`（含 X-Real-IP / X-Forwarded-For/Proto / X-Request-Id / Host header + WebSocket Upgrade preserve + 60s timeout）、`location /` SPA fallback、靜態 cache (`expires 30d`)、gzip 設定。**禁止**任何 `Access-Control-*` header（§I 紅線）。寫完跑 acceptance：`nginx -t` 過 + 上述 jq 對外 port 驗證 + grep CORS 紅線。
+- [x] T011 [US4] 在 `deploy/compose.yaml` 加入 new-admin-base-web service：build context `..`（outer 倉根，因為 admin-web Dockerfile 在 `admin-web/Dockerfile`，content 由 feature 7 提供）、build args（VITE_BASE_URL=`/`、VITE_SERVICE_BASE_URL=`/api`、VITE_APP_TITLE/VITE_AUTH_ROUTE_MODE/VITE_STATIC_SUPER_ROLE）、`ports: ["${WEB_PORT:-8080}:80"]`、`depends_on new-admin-rust-api: service_healthy`、network admin-net、`restart: unless-stopped`。
+- [x] T012 [US4] 在 `deploy/compose.dev.yaml` 加入 new-admin-base-web dev override：`profiles: ["never"]`（依 research.md R6 — dev 模式 admin-web 走 host vite，new-admin-base-web 永不啟）。
+- [x] T013 [US4] 寫 `deploy/nginx/default.conf` — 嚴格依 `contracts/nginx-routes.md` normative：`listen 80`、`root /usr/share/nginx/html`、`location = /health` 回 `200 ok`（access_log off）、`location /api/` 反代到 `http://new-admin-rust-api:10001/`（含 X-Real-IP / X-Forwarded-For/Proto / X-Request-Id / Host header + WebSocket Upgrade preserve + 60s timeout）、`location /` SPA fallback、靜態 cache (`expires 30d`)、gzip 設定。**禁止**任何 `Access-Control-*` header（§I 紅線）。寫完跑 acceptance：`nginx -t` 過 + 上述 jq 對外 port 驗證 + grep CORS 紅線。
 
 **Checkpoint**: US4 完成 = prod 設定面就緒（等 feature 6+7 完成 image build 後可實際 prod 啟動）。
 
@@ -125,8 +125,8 @@ docker run --rm -v "$(pwd)/deploy/nginx:/etc/nginx/conf.d:ro" nginx:1.27-alpine 
 
 ### Implementation for User Story 2
 
-- [ ] T014 [P] [US2] 跑兩組靜態 compose 驗證並紀錄 stdout：(a) `docker compose -f deploy/compose.yaml config -q`、(b) `docker compose -f deploy/compose.yaml -f deploy/compose.dev.yaml config -q`，兩者都 exit 0、stderr 無 WARN/ERROR；額外跑 `docker compose -f deploy/compose.yaml config --format json | jq` 觀察展開後內容對齊 contracts/service-naming.md。
-- [ ] T015 [P] [US2] 跑 contracts/* 三份契約的 validation 指令清單並回填結果：(a) `contracts/env-variables.md` 段尾 4 條（必填 :? / 可選 :- / 無真實 secret / .env gitignored）、(b) `contracts/service-naming.md` 段尾 3 條（5 service 存在 / nginx 反代正確 / 全接 admin-net）、(c) `contracts/nginx-routes.md` 段尾 5 條（nginx -t / 路由完整 / proxy_pass target / CORS 紅線 / 必要 header）、(d) FR-141 negative check：`find deploy/ -type l | wc -l` 必須 = 0（無 symlink，依 constitution 跨平台相容）。任一 FAIL 即回前 stories phase 修正 + 重跑。
+- [x] T014 [P] [US2] 跑兩組靜態 compose 驗證並紀錄 stdout：(a) `docker compose -f deploy/compose.yaml config -q`、(b) `docker compose -f deploy/compose.yaml -f deploy/compose.dev.yaml config -q`，兩者都 exit 0、stderr 無 WARN/ERROR；額外跑 `docker compose -f deploy/compose.yaml config --format json | jq` 觀察展開後內容對齊 contracts/service-naming.md。
+- [x] T015 [P] [US2] 跑 contracts/* 三份契約的 validation 指令清單並回填結果：(a) `contracts/env-variables.md` 段尾 4 條（必填 :? / 可選 :- / 無真實 secret / .env gitignored）、(b) `contracts/service-naming.md` 段尾 3 條（5 service 存在 / nginx 反代正確 / 全接 admin-net）、(c) `contracts/nginx-routes.md` 段尾 5 條（nginx -t / 路由完整 / proxy_pass target / CORS 紅線 / 必要 header）、(d) FR-141 negative check：`find deploy/ -type l | wc -l` 必須 = 0（無 symlink，依 constitution 跨平台相容）。任一 FAIL 即回前 stories phase 修正 + 重跑。
 
 **Checkpoint**: US1 + US2 + US3 + US4 全部完成 = feature 1 主交付完成（除 follow-up T020 外）。可整合 PR 推 origin。
 
@@ -136,10 +136,10 @@ docker run --rm -v "$(pwd)/deploy/nginx:/etc/nginx/conf.d:ro" nginx:1.27-alpine 
 
 **Purpose**: 上游驗證、最終確認、跨 story polish。
 
-- [ ] T016 [P] 跑 §IV 上游驗證 #2（migration idempotency，依 research.md R4）：第二次 `docker compose run --rm migration` Exited(0) + stdout 含「nothing to do」或同義 + sys_user 計數不變。把 PASS 結果回填 `spec.md` Assumptions 段「待驗證的上游慣例」第 2 項勾選為 ✅。
-- [ ] T017 [P] 跑 §IV 上游驗證 #3（postgres/redis 60 秒內穩定 healthy，依 research.md R8）：使用 `until docker compose ps ... healthy` 迴圈計時，必 ≤ 60 秒。把 PASS 結果回填 `spec.md` 第 3 項。
-- [ ] T018 [P] 跑 §IV 上游驗證 #4（compose project name `new-admin-root` 隔離）：`docker compose config | grep -E '^name:' | head -1` 回 `name: new-admin-root`；若資源允許可額外做雙 stack 撞名測試（依 research.md R8 完整指令）。把 PASS 結果回填 `spec.md` 第 4 項。
-- [ ] T019 完成本 feature：`git status` clean、`git submodule status` 全行首空格、確認所有 commit 對齊 §VII 中文 conventional commit 格式；最終 commit 把 spec.md Assumptions 上游驗證項勾選改 ✅、tasks.md 內所有 task 改 [x]、`docs/INTEGRATION-CHECKLIST.md` 把 feature 1 標完成（spec/plan/impl 三欄都 ✅、加 SHA、狀態欄改完成）。
+- [x] T016 [P] 跑 §IV 上游驗證 #2（migration idempotency，依 research.md R4）：第二次 `docker compose run --rm migration` Exited(0) + stdout 含「nothing to do」或同義 + sys_user 計數不變。把 PASS 結果回填 `spec.md` Assumptions 段「待驗證的上游慣例」第 2 項勾選為 ✅。
+- [x] T017 [P] 跑 §IV 上游驗證 #3（postgres/redis 60 秒內穩定 healthy，依 research.md R8）：使用 `until docker compose ps ... healthy` 迴圈計時，必 ≤ 60 秒。把 PASS 結果回填 `spec.md` 第 3 項。
+- [x] T018 [P] 跑 §IV 上游驗證 #4（compose project name `new-admin-root` 隔離）：`docker compose config | grep -E '^name:' | head -1` 回 `name: new-admin-root`；若資源允許可額外做雙 stack 撞名測試（依 research.md R8 完整指令）。把 PASS 結果回填 `spec.md` 第 4 項。
+- [x] T019 完成本 feature：`git status` clean、`git submodule status` 全行首空格、確認所有 commit 對齊 §VII 中文 conventional commit 格式；最終 commit 把 spec.md Assumptions 上游驗證項勾選改 ✅、tasks.md 內所有 task 改 [x]、`docs/INTEGRATION-CHECKLIST.md` 把 feature 1 標完成（spec/plan/impl 三欄都 ✅、加 SHA、狀態欄改完成）。
 
 ---
 
