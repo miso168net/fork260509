@@ -242,15 +242,15 @@ git submodule status         # 列出兩個 submodule 的 SHA 與 branch
 
 Quick reference（此處可能滯後 CHECKLIST，以 CHECKLIST 為準）：
 
-- 已完成里程碑：outer repo init/push、worktree+submodule、spec-kit v0.8.7、constitution v1.1.0
-- 待跑 7 個 features（feature 7 `admin-web-dockerfile` 由 001-deploy-infra clarify Q1 衍生新增；CHECKLIST 同步待後續 commit）
-- 當前進行中：feature 1 `deploy-infra`（spec + clarify + plan 完成、tasks 待產）
+- 已完成里程碑：outer repo init/push、worktree+submodule、spec-kit v0.8.7、constitution v1.1.0、**feature 1 deploy-infra**（merged 進 new-admin-root，commits `3ff40de..1da3b5c`）
+- 待跑 6 個 features（feature 7 `admin-web-dockerfile` 由 001 clarify Q1 衍生新增）
+- 當前進行中：feature 2 `gap-0ab0f-frontend-env-and-login`（spec + clarify + plan 完成、tasks 待產）
 
 <!-- SPECKIT START -->
-**Active Spec**: [specs/001-deploy-infra/spec.md](specs/001-deploy-infra/spec.md)
-**Active Plan**: [specs/001-deploy-infra/plan.md](specs/001-deploy-infra/plan.md)
-**Phase**: Phase 1 完成（spec + clarify Q1Q2 + plan + Phase 0 research + Phase 1 data-model/contracts/quickstart）
-**下一步**: `/speckit-tasks` → 產 dependency-ordered tasks.md
+**Active Spec**: [specs/002-gap-0ab0f-frontend-env-and-login/spec.md](specs/002-gap-0ab0f-frontend-env-and-login/spec.md)
+**Active Plan**: [specs/002-gap-0ab0f-frontend-env-and-login/plan.md](specs/002-gap-0ab0f-frontend-env-and-login/plan.md)
+**Phase**: Phase 1 完成（spec + clarify 0-finding gracefully exit + plan + Phase 0 research + Phase 1 data-model/contracts/quickstart）
+**下一步**: `/speckit-tasks` → 產 tasks.md
 <!-- SPECKIT END -->
 
 ---
