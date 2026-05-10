@@ -210,7 +210,7 @@ git submodule status         # 列出兩個 submodule 的 SHA 與 branch
 - ❌ 不要在 worktree 裡跑 `git push` 不指定 remote/branch — `cd admin-web` 預設推到 fork260509-soybean-admin，可能誤推 main 分支；用 `git push origin new-admin-base-web` 顯式指定。
 - ❌ 不要忘記第二段 commit：worktree 內改完 push 完，**一定要回外層 `git add admin-web && git commit`** 更新 pin，否則外層下次 commit 才會包進去（容易混淆 SHA 對應關係）。
 - ❌ 不要在 Rust `application.yaml` 直接改 hardcode（已決定改用 envsubst template，見 docs/INTEGRATION-PLAN.md §5.3）。
-- ❌ 不要新增 README.md 到外層 root（已有 CLAUDE.md + docs/，多了亂；要外發再寫）。
+- ℹ️ `README.md` 是給人類首次 onboarding 用的（特別是新機器 setup）；CLAUDE.md 是給 dev assistant 內部用的。兩者目的不同，不要混合 — 若 README 章節變多到開始重疊 CLAUDE.md 內容，把細節留 CLAUDE，README 只放「快速開始 + 指引到 CLAUDE」。
 - ❌ 不要在 Rust 加 CorsLayer（決策走 nginx 同源；改 CorsLayer 會讓 prod 路徑分歧）。
 - ❌ 不要碰 `fork260509-soybean-admin-docs/` 與 `fork260509-soybean-admin-nestjs/`（不在整合範圍內，留作參考）。
 
