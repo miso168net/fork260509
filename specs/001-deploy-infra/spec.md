@@ -13,7 +13,14 @@
 | 涵蓋 GAP | **GAP-0e（CORS）** — 透過 nginx 同源反代「順帶」解決，不在 Rust 加 CorsLayer |
 | 倉/層 | outer（`new-admin-root` 自身追蹤；不動 `admin-web/` 與 `admin-api/`） |
 | 分組理由 | deploy/ 內所有檔案（compose、nginx、.env.example）同主題、同倉，符合 §III 例外條款（同主題同倉合併） |
-| 不涵蓋 | admin-web 內 Dockerfile（屬 admin-web 倉，留給後續 feature）、admin-api 的 envsubst 改造（feature 6）、admin-web env 對齊（feature 2）、admin-api response 對齊（feature 3）、refresh handler（feature 4） |
+| 不涵蓋 | admin-web 內 Dockerfile（**將由新增的 feature 7 admin-web-dockerfile 處理**，見 Clarifications Q1）、admin-api 的 envsubst 改造（feature 6）、admin-web env 對齊（feature 2）、admin-api response 對齊（feature 3）、refresh handler（feature 4） |
+
+## Clarifications
+
+### Session 2026-05-11
+
+- Q: admin-web Dockerfile（multi-stage pnpm build → nginx serve）由哪個 feature 負責？ → A: C — 新增獨立 feature 7「admin-web-dockerfile」，排在 feature 5 後、feature 6 前。理由：主題單一（容器化）、單倉（admin-web）、符合 constitution §III 邊界（不跨倉、不跨主題）。本 feature 1 只負責 outer 端 compose.yaml 對該 Dockerfile 的引用契約。
+- Q: 是否在本 feature 鎖定 production hardening（redis maxmemory / service memory/cpu limits / read-only fs 等）？ → A: A — 不涵蓋，與 INTEGRATION-PLAN §5.1 既有 compose.yaml 範例一致。理由：(1) 主題正交（本 feature 只負責「能跑起來」，hardening 是獨立關注點）；(2) admin tool 是內部低流量、預先設 limit 反而易誤殺；(3) 符合 constitution §III「最小 GAP」與全域 §2「Simplicity First」。如後續實際運行觀察到 OOM 或資源競爭，再開獨立 feature 處理。
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -186,7 +193,7 @@
 ### 對其他 feature 的依賴（明列以利 plan 階段排序）
 
 - **依賴 feature 6 (dockerfile-envsubst)**：new-admin-rust-api 容器要能成功啟動，需要 admin-api 的 Dockerfile 改造為 envsubst template + entrypoint.sh + application.yaml.tpl。本 feature 只負責 outer 端設定正確；admin-rust-api 容器啟動的 acceptance 屬 feature 6。
-- **暫不涵蓋 admin-web Dockerfile**：admin-web image 的 build context 與 Dockerfile 位置（INTEGRATION-PLAN §5.4 寫在 admin-web/）責任歸屬待後續確認；本 feature 範圍只到「compose.yaml 引用該 Dockerfile」的契約面，不實作該 Dockerfile。
+- **依賴 feature 7 (admin-web-dockerfile，新增)**：new-admin-base-web image 的 multi-stage Dockerfile（pnpm build → nginx serve，INTEGRATION-PLAN §5.4）將由新增的 feature 7 處理，排在 feature 5 後、feature 6 前。本 feature 範圍只到「compose.yaml 引用該 Dockerfile + nginx/default.conf 透過 build context COPY 進 image」的契約面；prod 模式完整啟動的 acceptance 屬 feature 7。**roadmap 由 6-feature 擴為 7-feature**（待同步更新 `docs/INTEGRATION-CHECKLIST.md`）。
 - **不涵蓋 GAP-0a~0d、GAP-0f、GAP-1~4**：屬 features 2/3/4/5。
 
 ### 待驗證的上游慣例（依 constitution §IV）
@@ -203,3 +210,4 @@
 - CI workflow（INTEGRATION-PLAN §8 範圍，獨立 feature）。
 - 監控 / log aggregation（grafana / loki / prometheus）— 未來擴充。
 - backup / DR（pg_dump 排程、redis snapshot 上傳）— 未來擴充。
+- **Production hardening**（依 Clarifications Q2 = A）：redis maxmemory / eviction policy、service memory/cpu limits、read-only filesystem、capability drop、ulimit、health 失敗重啟次數等，皆不在本 feature 內鎖定。實際運行觀察後若有需求，獨立 feature 處理。
