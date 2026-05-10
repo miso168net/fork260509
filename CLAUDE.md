@@ -247,9 +247,9 @@ Quick reference（此處可能滯後 CHECKLIST，以 CHECKLIST 為準）：
 - 當前進行中：feature 3 `gap-0cd-rust-output-camel`（spec + clarify + plan 完成、tasks 待產）
 
 <!-- SPECKIT START -->
-**Active Spec**: [specs/003-gap-0cd-rust-output-camel/spec.md](specs/003-gap-0cd-rust-output-camel/spec.md)
-**Active Plan**: [specs/003-gap-0cd-rust-output-camel/plan.md](specs/003-gap-0cd-rust-output-camel/plan.md)
-**Phase**: Phase 1 完成（spec + clarify 0-finding gracefully exit + plan + Phase 0 research + Phase 1 data-model/contracts/quickstart）
+**Active Spec**: [specs/004-gap-1-refresh-handler/spec.md](specs/004-gap-1-refresh-handler/spec.md)
+**Active Plan**: [specs/004-gap-1-refresh-handler/plan.md](specs/004-gap-1-refresh-handler/plan.md)
+**Phase**: Phase 1 完成（spec + clarify Q1 user.status mirror policy + plan + Phase 0 research（R1-R10） + Phase 1 data-model + contracts/refresh-token-endpoint + quickstart）
 **下一步**: `/speckit-tasks` → 產 tasks.md
 <!-- SPECKIT END -->
 
