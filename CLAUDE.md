@@ -32,8 +32,8 @@ fork260509/                                ← workspace root（傘狀 repo new-
 ├── .gitmodules           (尚未建立)        ← 未來：admin-web/admin-api 的 submodule 設定（指 fork remote）
 ├── docs/                                  ← 跨倉設計產出（外層 git 追蹤）
 │   ├── INTEGRATION-RESEARCH.md            ← 初版 gap 分析（4 個 GAP）
-│   ├── INTEGRATION-PLAN.md                ← 完整實施計畫（10 個 GAP、含 docker compose / Dockerfile / nginx conf）
-│   └── GRAPH_REPORT.md                    ← symlink → ../graphify-out/GRAPH_REPORT.md（不複製檔，讓 graphify update 自然反映）
+│   └── INTEGRATION-PLAN.md                ← 完整實施計畫（10 個 GAP、含 docker compose / Dockerfile / nginx conf）
+│   ※ 知識圖譜報告在 ../graphify-out/GRAPH_REPORT.md（不放 symlink，避免 Windows TortoiseGit 操作異常）
 ├── graphify-out/                          ← 知識圖譜輸出（外層 git 只追蹤 graph.json + GRAPH_REPORT.md）
 │   ├── GRAPH_REPORT.md                    ← 含 god nodes / surprises / suggested questions
 │   ├── graph.json                         ← 結構化圖譜資料（可被 graphify query 查）
@@ -54,8 +54,8 @@ fork260509/                                ← workspace root（傘狀 repo new-
 **關鍵事實**：
 - `admin-web/` `admin-api/` 是 worktree + submodule 雙重身分（見 §1 與 §9 操作手冊）— 外層 commit 只記 SHA pin、不記檔案 diff；別人 clone 用 `--recurse-submodules`。
 - `fork260509-*` 源倉 gitignored，但**本機必須留著**（worktree 源倉）；別台機器若用 submodule clone 重來則不需要這 4 個源倉。
-- `docs/GRAPH_REPORT.md` 是 symlink 而非實檔 — graphify update 重產 `graphify-out/GRAPH_REPORT.md` 後，`docs/` 內看到的是同一份。
-- 外層 git 追蹤：`CLAUDE.md`、`.gitignore`、`.gitmodules`（未來）、`docs/`、`graphify-out/{graph.json, GRAPH_REPORT.md}`、以及 `admin-web` `admin-api` 兩個 gitlink SHA（未來）。
+- 知識圖譜報告 `GRAPH_REPORT.md` 只存在 `graphify-out/`，docs/ 不放 symlink（Windows TortoiseGit 對 symlink 處理異常）。要看就直接開 `graphify-out/GRAPH_REPORT.md`。
+- 外層 git 追蹤：`CLAUDE.md`、`.gitignore`、`.gitmodules`（未來）、`docs/{INTEGRATION-RESEARCH.md, INTEGRATION-PLAN.md}`、`graphify-out/{graph.json, GRAPH_REPORT.md}`、以及 `admin-web` `admin-api` 兩個 gitlink SHA（未來）。
 
 ## 3. 知識圖譜（graphify）
 
@@ -138,7 +138,7 @@ bump admin-api to def5678: GAP-1 add refresh handler
 
 1. **改 fork 源倉**（如要拉 upstream rebase）：`cd fork260509-xxx && git fetch upstream && git rebase ...`。worktree 自動跟著走（共用 .git database）；之後仍要回外層 `git add admin-web && git commit` 更新 pin。
 2. **CLAUDE.md / docs/INTEGRATION-*.md 改動**：在外層 `new-admin-root` repo 改、commit、push（單段 commit，不需第二段）。
-3. **不要把 docs/GRAPH_REPORT.md 改成實檔**：它是 symlink 指向 graphify-out/，這樣 graphify update 後 docs/ 自動同步。`git add docs/GRAPH_REPORT.md` 會把 symlink 本身當路徑記錄，不是內容；如果要在 docs/ 看到「凍結快照」，改用 `cp` 並 commit。
+3. **不要在 docs/ 重新建 symlink** 指向 graphify-out/（Windows TortoiseGit 對 symlink 處理會出問題）。GRAPH_REPORT.md 唯一位置就是 `graphify-out/GRAPH_REPORT.md`，要在 docs/ 看到「凍結快照」就 `cp graphify-out/GRAPH_REPORT.md docs/` 並 commit 為實檔。
 4. **graphify 重跑前**：先讀 `graphify-out/cost.json` 看是否真有需要（一次 ~440K input / 190K output token）。多數時候 `graphify update` 即可。
 5. **不要改 `graphify-out/cache/`**：那是 graphify 內部的 LLM 擷取結果快取，手改會破壞下次 update 的 diff。
 6. **新功能設計問題**先用 `graphify query "..."` 試 — 但 NestJS / Vue component 部分要警覺圖譜盲點（§3）。

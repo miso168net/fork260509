@@ -120,7 +120,7 @@ new-admin-root/                  ← 傘狀 repo（== workspace root，僅追蹤
 ├── docs/                        ← 跨倉設計產出
 │   ├── INTEGRATION-RESEARCH.md
 │   ├── INTEGRATION-PLAN.md      ← 本文件
-│   └── GRAPH_REPORT.md          ← symlink → ../graphify-out/GRAPH_REPORT.md
+│   ※ GRAPH_REPORT.md 在 ../graphify-out/（不放 symlink，Windows TortoiseGit 處理異常）
 ├── graphify-out/                ← 知識圖譜（本倉追蹤 graph.json/manifest/cost/REPORT）
 ├── deploy/                      ← docker-compose / nginx / .env.example（在 §5）
 │   ├── compose.yaml
@@ -266,7 +266,7 @@ git commit -m "init: register admin-web/admin-api as submodules"
 | 新增 | `deploy/nginx/default.conf` | reverse proxy 設定（見 §5.5） |
 | 新增 | `deploy/redis/redis.conf` | redis 自訂設定（如要） |
 | 新增 | `deploy/.env.example` | env 變數樣板（見 §5.6） |
-| 已有 | `docs/INTEGRATION-RESEARCH.md`、`docs/INTEGRATION-PLAN.md`、`docs/GRAPH_REPORT.md`(symlink) | 跨倉設計產出 |
+| 已有 | `docs/INTEGRATION-RESEARCH.md`、`docs/INTEGRATION-PLAN.md`、`graphify-out/GRAPH_REPORT.md` | 跨倉設計產出 |
 | 已有 | `CLAUDE.md`、`.gitignore`、`graphify-out/` | workspace 配置與圖譜 |
 
 ### 3.4 `fork260509-soybean-admin-docs` 和 `fork260509-soybean-admin-nestjs` 怎麼處理
@@ -1319,7 +1319,7 @@ jobs:
 | `CLAUDE.md` | 已建立（workspace 指引） |
 | `.gitignore` | 已建立（排除 worktree 與源倉） |
 | `docs/INTEGRATION-RESEARCH.md`、`docs/INTEGRATION-PLAN.md` | 已搬入 docs/ |
-| `docs/GRAPH_REPORT.md` | symlink → ../graphify-out/GRAPH_REPORT.md |
+| `graphify-out/GRAPH_REPORT.md` | 圖譜報告唯一位置（docs/ 不放 symlink） |
 | `graphify-out/{graph.json,GRAPH_REPORT.md,manifest.json,cost.json}` | graphify 產出 |
 | `deploy/compose.yaml` | 待建（§5.1） |
 | `deploy/compose.dev.yaml` | 待建（§5.2） |
