@@ -11,6 +11,7 @@
 .claude/shell-snapshots/
 .claude/ide/
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 .claude.json
 .claude.json.backup
 .credentials.json
