@@ -20,7 +20,7 @@
 | 2 | `gap-0ab0f-frontend-env-and-login` | 0a, 0b, 0f | admin-web | admin-web env 對齊 + login body field | 5-7 行 | ✅ | ✅ | ✅ | 完成 (b873f69..c86358f) |
 | 3 | `gap-0cd-rust-output-camel` | 0c, 0d | admin-api | admin-api serialize 對齊 admin-web (camelCase) | ~5 行 | ✅ | ✅ | ✅ | 完成 (e5e912b..143574d) |
 | 4 | `gap-1-refresh-handler` | 1 | admin-api | refresh token endpoint | ~80 行 | ✅ | ✅ | ✅ | 完成 (8c4e901..81b1a1a，admin-api inner 719ab75..b502528；含 retrospective review M1/4-M2 doc fixes) |
-| 5 | `admin-web-cleanup` | 2, 3, 4 | admin-web | admin-api 對齊後的 admin-web 清理 | ~25 行 | ☐ | ☐ | ☐ | 待 |
+| 5 | `admin-web-cleanup` | 2, 3, 4 | admin-web | admin-api 對齊後的 admin-web 清理 | ~25 行 | ✅ | ✅ | ✅ | 完成 (05929e4..052748f，admin-web inner 29874dd3..7b167559) |
 | 7 | `admin-web-dockerfile` | (非 GAP) | admin-web | multi-stage Dockerfile (pnpm build → nginx serve) | 中 | ☐ | ☐ | ☐ | 待 |
 | 6 | `dockerfile-envsubst` | (非 GAP) | admin-api | envsubst 模板化 + 吸收 retrospective review 三條 hardening：1-I1（redis healthcheck CMD-SHELL form）、1-I2（compose env wire APP_JWT_REFRESH_TOKEN_EXPIRE）、1-I3（JWT_ISSUER required gate） | 中-大 | ☐ | ☐ | ☐ | 待 |
 | 8 | `gap-tz-1-timestamptz-migration` | (非原 GAP；retrospective review 4-I1) | admin-api | `sys_tokens.{expires_at, created_at, login_time}` TIMESTAMP → TIMESTAMPTZ schema migration + Rust 改用 `DateTimeWithTimeZone` + write-path 改 `Utc::now()` 避免 TZ skew | 中 | ☐ | ☐ | ☐ | 待 |
