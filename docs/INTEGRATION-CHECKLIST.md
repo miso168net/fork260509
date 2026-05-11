@@ -84,6 +84,20 @@ review 4 features 完成後留下的 backlog 條目：
 | 0-process | 跨 feature | future process refinement | `speckit-implement` workflow 應在 acceptance evidence collection 階段 record `git rev-parse HEAD` at 命令執行當下（不是 retrospectively 從 commit 推回）、避免 8-N1 那種 SHA stale class 錯誤再發生 |
 | 1-M-cache | 001 | future minor cache | outer `.dockerignore` 沒擋 `admin-web/Dockerfile` 本身 → Dockerfile 編輯會 invalidate `COPY admin-web/` layer cache。Real impact 小（COPY 在 install 之後、且 Dockerfile 改動本來就值得 rebuild）；接觸面小、可選 |
 
+## Repo health backlog（2026-05-11 verification 發現）
+
+執行 `superpowers:verification-before-completion`（跑 全 admin-api `cargo clippy/test` + admin-web `pnpm typecheck/lint/build`）發現的 pre-existing repo 健康問題。**全部不是 features 1-8 引入**（git blame 確認均早於 feature 1）；canonical container build path（`docker compose build`）仍 PASS、運行期不受影響。這些是「想跑 host-side 完整驗證會撞到」的問題。
+
+| ID | 範疇 | 處理方式 | 備註 |
+|---|---|---|---|
+| R-clippy-ptr_arg | admin-api / server-utils | 1 行 fix | `admin-api/server/utils/src/tree_util.rs:180` `nodes: &mut Vec<T>` → `&mut [T]`（clippy::ptr_arg）；`.cargo/config.toml:54` 設 `-D warnings` 把 clippy 所有 warning 升 error，這 1 個 ptr_arg violation 阻擋整個 workspace 的 `cargo clippy` 通過。git blame 確認 `7f0564f` initial add（早於 feature 1）。Fix: 改 signature 為 slice |
+| R-clippy-lifetimes | admin-api / sea-orm-adapter（dep crate） | 中等 / 上游 patch | `admin-api/sea-orm-adapter/src/action.rs:140-152` 等 7 處 `clippy::needless_lifetimes` 違反；同樣被 `.cargo/config.toml -D warnings` 升 error → 阻擋 workspace clippy。sea-orm-adapter 是 path dep（在 admin-api repo 內、不是 crates.io）→ 可直接 patch 或等上游升版 |
+| R-axum-version-conflict | admin-api / axum-casbin tests | 中等 / Cargo.toml dep alignment | `admin-api/axum-casbin/tests/{test_middleware,test_middleware_domain,test_set_enforcer}.rs` 編譯 fail：dep tree 同時引入 `axum_core 0.4.5`（axum-casbin 自己用）+ `axum_core 0.5.2`（axum-test-helpers 0.8.0 拉的）→ 兩個 `Body` 型別不相容、TestClient::new() 不能 accept axum-casbin 的 Router。Fix 選項：(a) axum-test-helpers 降版對齊 0.4 (b) axum-casbin 升版用 axum 0.5 (c) workspace `[patch.crates-io]` force-align axum_core 版本 |
+| R-pnpm-flatten | admin-web / pnpm 11 monorepo | env / future feature 7 後續 | host `pnpm install` 後 `axios` / `@iconify/utils` / `@unocss/core` / `@unocss/preset-mini` 等 transitive deps 沒進 root node_modules（pnpm 11 stricter resolution + `shamefully-hoist=true` 沒涵蓋這些）→ `pnpm typecheck`（15 errors） / `pnpm build`（fail）host 都跑不過。F5 T008-static.md `(f)` 段已記、F7 docker container build path 為 canonical 解法（已驗證 PASS）。Fix 選項：(a) 確認 pnpm-workspace.yaml + 個別包的 dependencies 結構 (b) 把 transitive deps explicit lift 到 root package.json (c) 接受 host-only env 限制、container build 作為 canonical gate |
+| R-eslint-v10-migration | admin-web / eslint config | docs / config migration | `npx eslint .` fail：ESLint v10 預設用 `eslint.config.js`（flat config）、project 仍用舊 `.eslintrc.*` 格式 → ESLint v10 拒絕 load。`oxlint` 不受影響、仍 PASS（0/0 over 233 files）。Fix: migration guide https://eslint.org/docs/latest/use/configure/migration-guide；轉成 flat config eslint.config.js |
+
+> 註：以上 5 條都不是 features 1-8 引入的；F8 acceptance evidence 與 spec / code reviews 全 PASS（F8 modified file 0 命中在任何 clippy / test 錯誤訊息）。但若要把 host-side `cargo clippy` / `cargo test --workspace` / `pnpm typecheck/build/eslint` 開為 CI gate、這 5 條都得解。
+
 ## 維護指引
 
 每次 feature 推進後，**在同一個 commit 內**更新本檔：
