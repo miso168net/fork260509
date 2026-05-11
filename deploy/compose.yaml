@@ -45,7 +45,9 @@ services:
     networks:
       - admin-net
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      # 1-I1 fix：CMD-SHELL form + $$REDIS_PASSWORD env interpolation
+      # 避免 docker compose 提前展開 password 到 healthcheck argv（docker top 看不到明文）
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -82,7 +84,9 @@ services:
       APP_DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-10}
       APP_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       APP_JWT_JWT_SECRET: ${JWT_SECRET:?must set JWT_SECRET}
-      APP_JWT_ISSUER: ${JWT_ISSUER:-https://github.com/your-org/new-admin}
+      # FR-610 + 1-I3 fix（feature 6）：required gate（:?），對齊 .env.example 之 APP_JWT_ISSUER 命名
+      # 即使 default fallback 被移除、operator 仍可 set placeholder，但 entrypoint sentinel 會於 runtime 拒之
+      APP_JWT_ISSUER: ${APP_JWT_ISSUER:?must set APP_JWT_ISSUER}
       APP_JWT_EXPIRE: ${JWT_EXPIRE:-7200}
       # 1-I2 fix：refresh_token 過期時間（feature 4 引入），原 .env.example 有定義但未 wire 進 compose
       APP_JWT_REFRESH_TOKEN_EXPIRE: ${APP_JWT_REFRESH_TOKEN_EXPIRE:-1209600}
