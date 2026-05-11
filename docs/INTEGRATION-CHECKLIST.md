@@ -19,7 +19,7 @@
 | 1 | `deploy-infra` | (順帶 0e CORS) | outer | docker-compose + nginx + .env.example | 中 | ✅ | ✅ | ✅ | 完成 (3ff40de..1dbd3e9) |
 | 2 | `gap-0ab0f-frontend-env-and-login` | 0a, 0b, 0f | admin-web | admin-web env 對齊 + login body field | 5-7 行 | ✅ | ✅ | ✅ | 完成 (b873f69..c86358f) |
 | 3 | `gap-0cd-rust-output-camel` | 0c, 0d | admin-api | admin-api serialize 對齊 admin-web (camelCase) | ~5 行 | ✅ | ✅ | ✅ | 完成 (e5e912b..143574d) |
-| 4 | `gap-1-refresh-handler` | 1 | admin-api | refresh token endpoint | ~80 行 | ☐ | ☐ | ☐ | 待 |
+| 4 | `gap-1-refresh-handler` | 1 | admin-api | refresh token endpoint | ~80 行 | ✅ | ✅ | ✅ | 完成 (8c4e901..b432783，admin-api inner 719ab75..84bc29a) |
 | 5 | `admin-web-cleanup` | 2, 3, 4 | admin-web | admin-api 對齊後的 admin-web 清理 | ~25 行 | ☐ | ☐ | ☐ | 待 |
 | 7 | `admin-web-dockerfile` | (非 GAP) | admin-web | multi-stage Dockerfile (pnpm build → nginx serve) | 中 | ☐ | ☐ | ☐ | 待 |
 | 6 | `dockerfile-envsubst` | (非 GAP) | admin-api | envsubst 模板化 | 中 | ☐ | ☐ | ☐ | 待 |
@@ -32,12 +32,10 @@ GAP 詳細描述見 `docs/INTEGRATION-PLAN.md §4`。
 
 依 constitution §IV「上游驗證」規則，這些項目會在對應 feature 的 spec.md Assumptions 段帶上、實作時驗、驗完勾掉並回填結果：
 
-- [ ] **驗證預設密碼是不是 `Soybean@123.`**（feature 1/2 第一次 login 時驗）
-  - 驗完若正確 → 更新 CLAUDE.md §5 把「待驗證」字樣移除
-  - 驗完若不同 → 更新 CLAUDE.md §5 密碼欄為實際值
+- [x] **驗證預設密碼是不是 `Soybean@123.`** — ✅ **驗完為 `123456`**（T009 動態 acceptance 實測，2026-05-11；CLAUDE.md §5.1 已更新）
 - [ ] **驗證 `process_collected_routes()` 是 idempotent upsert**（feature 1 first/second boot 對比 sys_endpoint count）
 - [ ] **驗證 Rust 是否有 `/health` endpoint**（feature 1 compose healthcheck 用；若無，feature 1 會順帶補 endpoint）
-- [ ] **在 `sys_tokens` 表加 `expires_at` 欄位**（feature 4 refresh handler 需要 + migration）
+- [x] **在 `sys_tokens` 表加 `expires_at` 欄位** — ✅ **feature 4 完成**（admin-api inner commit `719ab75` migration + entity）
 
 ## 維護指引
 

@@ -114,17 +114,17 @@ fork260509/                                ← workspace root（傘狀 repo new-
 
 | 帳號 | 角色 | 密碼 |
 |---|---|---|
-| `Soybean` | 超級管理員 | `Soybean@123.`（依上游慣例，待驗證） |
+| `Soybean` | 超級管理員 | `123456`（T009 動態驗證確認，2026-05-11） |
 | `Administrator` | admin | 同上 |
 | `GeneralUser` | 一般 | 同上 |
 
-3 個 user 共用同一個 argon2id 雜湊。**驗證後若密碼不同，請更新此處**。
+3 個 user 共用同一個 argon2id 雜湊。**已驗證**：feature 4 T009 dynamic acceptance 階段實測 `Soybean@123.` 回 1003（Authentication failed），`123456` 回 200 成功。上游 README 文件提到 `Soybean@123.` 是錯的；hash 對應 plaintext = `123456`。
 
 ### 5.2 對外 endpoint（待 deploy/ 建好後生效）
 
 - new-admin-base-web：`http://localhost:8080`（變數 `WEB_PORT` 預設 8080）
 - new-admin-rust-api（同源）：`http://localhost:8080/api/*` → nginx 反代到 `new-admin-rust-api:10001`
-- Login API：`POST /api/auth/login` body `{"identifier": "Soybean", "password": "Soybean@123."}`
+- Login API：`POST /api/auth/login` body `{"identifier": "Soybean", "password": "123456"}`
 
 ## 6. 開發守則（workspace-specific）
 

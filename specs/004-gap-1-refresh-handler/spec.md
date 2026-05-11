@@ -29,7 +29,7 @@
 當 admin-web 的 access token 過期或被攔截器標 401 時，admin-web 會把 storage 內的 refresh token 帶到 `POST /auth/refreshToken`。admin-api MUST 驗證該 token 仍有效（DB 內 `sys_tokens.status='ACTIVE'`、`expires_at > now`），通過則：
 1. 把舊 token row 標為 `REFRESHED`
 2. 為同一 user 重新發新 access token（JWT）與新 refresh token（ULID）
-3. 新 row 插入 `sys_tokens` 表（與 login 同樣的 audit 流程，`status='ACTIVE'`、`expires_at=now+APP_REFRESH_TOKEN_EXPIRE`）
+3. 新 row 插入 `sys_tokens` 表（與 login 同樣的 audit 流程，`status='ACTIVE'`、`expires_at=now+APP_JWT_REFRESH_TOKEN_EXPIRE`）
 4. 回傳 `AuthOutput { token, refreshToken }`（同 login response shape，已是 camelCase — feature 3 已對齊）
 
 **Why this priority**：feature 4 的核心唯一目的就是「讓 admin-web session 能持續」。沒有 P1 = feature 沒交付。admin-web 攔截器在 access token 401 時會 trigger refresh flow，refresh 失敗會 force re-login（破壞 UX）。
@@ -108,11 +108,11 @@
   1. 從 `sys_tokens` 表查 `refresh_token = $1 AND status = 'ACTIVE' AND expires_at > now()`；無 row → `AppError { code: 401, message: "Refresh token invalid" }`（或對齊上游既有 i18n key）。status 欄位實際存的是 SCREAMING_SNAKE_CASE 字串（`TokenStatus` enum strum serialize）。
   2. 把該 row 的 `status` 標為 `'REFRESHED'`（不是 `REVOKED`；上游 `TokenStatus` enum 已預留 `Refreshed` variant 表「已被刷新」、`Revoked` 留給手動 logout / 安全強制下線）— 不刪除 row，保留 audit。
   3. 用該 row 的 `user_id` 重新生成 access token + refresh token（沿用既有 `generate_auth_output(user_id, username, role_codes, domain_code, organization_name, audience)` helper — R4 確認位於 `sys_auth_service.rs`；access token 期限沿用既有 `APP_JWT_EXPIRE`、新 refresh token 用 ULID 新生）。
-  4. 新 row 插入 `sys_tokens` 表（與 login 寫入同樣的欄位：`access_token` / `refresh_token` / `user_id` / `username` / `domain` / `login_time` / `ip`（**非** `client_ip` — 實際 column 名；refresh 場景沿用 login `ClientIp::get_real_ip(&headers)` + `ConnectInfo<SocketAddr>` fallback）/ `port` / `address` / `user_agent` / `request_id` / `type` / `created_at` / `created_by` / `status='ACTIVE'` / `expires_at = now() + APP_REFRESH_TOKEN_EXPIRE`），透過既有 `AccessTokenEvent::handle()`（R5 確認）寫入。
+  4. 新 row 插入 `sys_tokens` 表（與 login 寫入同樣的欄位：`access_token` / `refresh_token` / `user_id` / `username` / `domain` / `login_time` / `ip`（**非** `client_ip` — 實際 column 名；refresh 場景沿用 login `ClientIp::get_real_ip(&headers)` + `ConnectInfo<SocketAddr>` fallback）/ `port` / `address` / `user_agent` / `request_id` / `type` / `created_at` / `created_by` / `status='ACTIVE'` / `expires_at = now() + APP_JWT_REFRESH_TOKEN_EXPIRE`），透過既有 `AccessTokenEvent::handle()`（R5 確認）寫入。
   5. 回傳 `AuthOutput { token, refresh_token }`（serde 已 camelCase rename — feature 3 已對齊）。
 - **FR-431**: rotation MUST atomic：steps 2 + 4 MUST 在同一 DB transaction 內（**plan R8 已決策**：Sea-ORM `db.transaction::<_, AuthOutput, AppError>(|txn| Box::pin(async move { ... }))` 包覆「query 舊 row → INSERT 新 row → UPDATE 舊 row 為 `REFRESHED`」整鏈；INSERT 在 UPDATE 之前以保證任一失敗都不會留下「舊已 REFRESHED 但新 row 沒寫入」狀態）。
 - **FR-432**: refresh 失敗（步驟 1 查無 row）MUST NOT 觸發任何 DB 寫操作，MUST NOT 修改其他 row。
-- **FR-433**: refresh token 有效期 MUST 為環境變數 `APP_REFRESH_TOKEN_EXPIRE`（沿用既有 `APP_JWT_*` prefix 慣例 — R9 確認透過 `JwtConfig` struct + serde default 載入）可組態；無設則用 default 值 14 天（1209600 秒）— 與 INTEGRATION-PLAN §4 GAP-1 推薦一致。
+- **FR-433**: refresh token 有效期 MUST 為環境變數 `APP_JWT_REFRESH_TOKEN_EXPIRE`（沿用既有 `APP_JWT_*` prefix 慣例 — R9 確認透過 `JwtConfig` struct + serde default 載入）可組態；無設則用 default 值 14 天（1209600 秒）— 與 INTEGRATION-PLAN §4 GAP-1 推薦一致。
 - **FR-434 (Clarification 2026-05-11)**: refresh service MUST 對齊既有 login handler 的 user 帳號狀態檢查政策（mirror policy）：plan 階段 read 既有 login handler 取得「在 token issue 前對 user.status / user.is_deleted / 對等欄位的檢查方式（query、failure envelope、error message）」並沿用相同邏輯；login 若有此檢查、refresh 也要做（檢查失敗時 envelope 與 login 一致）；login 若無此檢查、refresh 也不做（保持兩路徑語意一致、避免 drift）。檢查的具體形式（JOIN、額外 query、或在現有 query 加 condition）由 implementer 在 plan / impl 階段決定。
 
 #### admin-api 新 migration（`migration/src/schemas/mYYYYMMDD_HHMMSS_add_expires_at_to_sys_tokens.rs`）
@@ -124,7 +124,7 @@
 
 #### 範圍邊界（負面 requirement）
 
-- **FR-450**: 本 feature MUST NOT 改 login handler 行為或 login response shape（login 仍走原 `AuthOutput`、原 expires 機制）。**例外（schema 對齊副改動）**：為對齊本 feature 新 migration 加的 NOT NULL `expires_at` 欄位，既有 login 寫入路徑（`AccessTokenEvent::handle`）必須同步補 `expires_at: Set(now + APP_REFRESH_TOKEN_EXPIRE)` 一行，否則 login 寫 sys_tokens row 會 break。此為 schema 對齊、不算 login 行為變更（caller 無感、response shape 不變）。
+- **FR-450**: 本 feature MUST NOT 改 login handler 行為或 login response shape（login 仍走原 `AuthOutput`、原 expires 機制）。**例外（schema 對齊副改動）**：為對齊本 feature 新 migration 加的 NOT NULL `expires_at` 欄位，既有 login 寫入路徑（`AccessTokenEvent::handle`）必須同步補 `expires_at: Set(now + APP_JWT_REFRESH_TOKEN_EXPIRE)` 一行，否則 login 寫 sys_tokens row 會 break。此為 schema 對齊、不算 login 行為變更（caller 無感、response shape 不變）。
 - **FR-451**: 本 feature MUST NOT 改 admin-web 任何檔（admin-web `fetchRefreshToken` 既有實作已對 `POST /auth/refreshToken` + body `{ refreshToken }`，符合 wire contract — 對齊責任在本 feature）。
 - **FR-452**: 本 feature MUST NOT 改 access token JWT 簽章演算法、`JWT_SECRET`、`JWT_EXPIRE`、`JWT_ISSUER` 等既有設定（refresh 完用同樣設定簽新 access token）。
 - **FR-453**: 本 feature MUST NOT 引入新的 dependency crate（用既有 `sea-orm` / `validator` / `chrono` / `axum` / `ulid` 就好）。
@@ -158,7 +158,7 @@
 
 - 採 INTEGRATION-PLAN §4 GAP-1 推薦方案 A（DB-backed refresh）：與既有 `AccessTokenEvent` 寫入流程對稱、有 audit trail；不採方案 B（stateless JWT refresh，revoke 困難）或方案 C（長效 JWT 不刷新，安全性弱）。
 - 採 INTEGRATION-CHECKLIST 跨 feature 待驗證項：「在 `sys_tokens` 表加 `expires_at` 欄位（feature 4 refresh handler 需要 + migration）」— 本 feature 自帶 migration，不另開 feature。
-- `APP_REFRESH_TOKEN_EXPIRE` default = 14 天（1209600 秒）— 與 INTEGRATION-PLAN §4 GAP-1 推薦一致；環境變數可覆蓋。
+- `APP_JWT_REFRESH_TOKEN_EXPIRE` default = 14 天（1209600 秒）— 與 INTEGRATION-PLAN §4 GAP-1 推薦一致；環境變數可覆蓋。
 - Token rotation 採「revoke 舊 + 發新 access + 新 refresh」全 rotate 模式（不採只發新 access、refresh 持續多次用）— 符合 INTEGRATION-PLAN「rotate refresh token」表述、且防 replay。
 - 失敗 envelope 用 `code: 401`（與 login 失敗對齊），HTTP 狀態碼可仍回 200（既有 `Res` envelope 慣例）；implementation 階段對照既有 `AppError` 行為 confirm。
 - migration backfill 採 `expires_at = created_at + INTERVAL '14 days'`（既有 row 給合理推算值，不無謂延長舊 token 壽命）。
@@ -174,17 +174,17 @@
 - **不依賴 feature 2（已 merged）**：admin-web 端 `fetchRefreshToken` 已對齊 wire contract（POST `/auth/refreshToken` body `{ refreshToken }`），不需 admin-web 端再動。
 - **不依賴 feature 5**：admin-web 端的攔截器 retry / dedupe 是 feature 5 範圍；本 feature 只保證 admin-api 側對單次合法 / 非法 refresh 的正確回應。
 
-### 待驗證的上游慣例（依 constitution §IV）
+### 待驗證的上游慣例（依 constitution §IV）— ✅ 全部已驗證 (T011 writeback 2026-05-11)
 
-- [ ] **login handler 是否在 token issue 前檢查 user.status / user.is_deleted / 對等欄位**（FR-434 mirror policy 的依據）— 看 `admin-api/server/service/src/admin/sys_auth_service.rs` 或對應 login flow；refresh service 必須對齊。
-- [ ] `sys_tokens` table 既有欄位精確命名（`access_token` / `refresh_token` / `user_id` / `client_ip` / `created_at` / `updated_at` / `status`）— 看 `admin-api/server/model/src/admin/entities/sys_tokens.rs` 或對應 Sea-ORM entity 即可確認，implementation 階段順帶 read。
-- [ ] `TokenStatus` enum 既有 variants 命名（`Active` / `Revoked` / 是否含 `Expired`）— 同上 entity 檔。
-- [ ] login handler 既有 `generate_access_token`（或對等）helper 的精確 signature、位置、與「寫 `sys_tokens` row」這一步是發生在 helper 內還是 service 內 — 影響 refresh service 重用程度，plan 階段 confirm。
-- [ ] `AccessTokenEvent`（或對等）寫入機制的精確介面 — refresh 必須沿用同一機制，避免 audit trail 行為不一致。
-- [ ] 既有 migration framework 對「加 column NOT NULL」的處理慣例（是否要先 ALTER ADD NULL → UPDATE backfill → ALTER ALTER COLUMN NOT NULL 三步走，或可一次 DEFAULT + NOT NULL 完成）— 看既有 migration 範例即可確認。
-- [ ] `Res::new_data` 把 `AuthOutput` 包進 `data` field（feature 3 已驗）— refresh response shape 完全沿用、不需再驗。
-- [ ] axum middleware 注入 `client_ip` 的精確方式（Request extension key 名）— login handler 既有用法可直接 copy。
-- [ ] `REFRESH_TOKEN_EXPIRE` 環境變數命名與既有 `JWT_EXPIRE` / `JWT_SECRET` 的載入 pattern 對齊（透過 `config` crate 還是 std env）— plan 階段 confirm。
+- [x] **login handler 是否在 token issue 前檢查 user.status / user.is_deleted / 對等欄位**（FR-434 mirror policy 的依據）— ✅ login `verify_user` line 241 有 `//TODO validate user status` 但**未實作**；refresh handler 對齊不檢查（mirror policy 落地）。
+- [x] `sys_tokens` table 既有欄位精確命名 — ✅ 實際 16 既有欄位：`id` / `access_token` / `refresh_token` / `status` / `user_id` / `username` / `domain` / `login_time` / `ip`（**不是** `client_ip`）/ `port` / `address` / `user_agent` / `request_id` / `type` / `created_at` / `created_by`；**無** `updated_at`；本 feature 加 `expires_at` 為第 17 欄位。
+- [x] `TokenStatus` enum 既有 variants 命名 — ✅ 3 個 variants：`Active` / `Refreshed` / `Revoked`（**含 `Refreshed`，不需 `Expired`**；strum SCREAMING_SNAKE_CASE serialize 成 `ACTIVE`/`REFRESHED`/`REVOKED`）。refresh handler 標 `Refreshed`（不是 `Revoked`）。
+- [x] login `generate_access_token` helper 精確介面 — ✅ 實際名為 `generate_auth_output(user_id, username, role_codes, domain_code, organization_name, audience) -> Result<AuthOutput, JwtError>`，位於 `sys_auth_service.rs:336`，是 `pub async fn`、**只生 JWT + Ulid 不寫 DB**。refresh 直接重用。
+- [x] `AccessTokenEvent` 寫入機制精確介面 — ✅ `AccessTokenEvent { 11 fields }.handle(db)` 同步 INSERT 一個 sys_tokens row（直接 `SysTokensActiveModel::insert`），**不是異步 event**。refresh service 直接呼叫（T004 把 handle 改 generic `<C: ConnectionTrait>` 支援 `&DatabaseTransaction`，並加 `expires_at` field）。
+- [x] migration framework 對「加 column NOT NULL with backfill」處理慣例 — ✅ 既有 migrations 全是 `create_table`、無 ALTER 範例。本 feature 採 3-step（add nullable → raw SQL `UPDATE` backfill → modify NOT NULL；raw SQL 用既有 `Statement::from_string` pattern）。
+- [x] `Res::new_data` 把 `AuthOutput` 包進 `data` field — ✅（feature 3 已驗）`Res::<T>::new_data(data)` → `{ code: 200, data: {...}, msg: "success", success: true }`，HTTP 200。`AppError { code: 401 }` → IntoResponse → `Res::new_error` → `{ code: 401, data: null, msg: "...", success: false }`，HTTP **仍 200**（envelope code 為依據；admin-web 攔截器既有約定）。
+- [x] axum middleware 注入 IP 的精確方式 — ✅ login handler 用 `ClientIp::get_real_ip(&headers)` 讀 X-Forwarded-For / X-Real-IP 等 header；無有效 header 時 fallback 到 `ConnectInfo<SocketAddr>` 的 `addr.ip().to_string()`。refresh handler 沿用同 pattern。
+- [x] `REFRESH_TOKEN_EXPIRE` 環境變數命名 — ✅ 實際 binding 是 **`APP_JWT_REFRESH_TOKEN_EXPIRE`**（field 加在 `JwtConfig` struct 內，config crate 用 `APP` prefix + `_` 嵌套展開為 `APP_JWT_*`）。**spec FR-433 / research R9 寫的 `APP_JWT_REFRESH_TOKEN_EXPIRE` 是 spec bug**（已在 T004 fixup amend + analyze fix 修正、deploy/.env.example 用正確名）。
 
 ### 不在範圍
 
