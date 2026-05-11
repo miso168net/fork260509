@@ -1,0 +1,59 @@
+# Outer-root .dockerignore (feature 7)
+#
+# 由 feature 006-admin-web-dockerfile 引入。
+#
+# Build context 結構：deploy/compose.yaml 內 `new-admin-base-web.build.context: ..`
+# 指向 outer 倉根（本檔位置）。Docker 找 build context 根的 .dockerignore（不是
+# Dockerfile 旁邊的 admin-web/.dockerignore），所以**本檔**才是 admin-web image
+# build 真正套用的 ignore 清單。
+#
+# IMPORTANT: .dockerignore 不支援 inline comment（與 .gitignore 同），#只能在獨立行
+#
+# 排除主要目的：避免 multi-GB build context transfer
+#   - admin-api/        ~2.7 GB Rust target 與 source
+#   - admin-web/node_modules ~795 MB pnpm 套件
+#   - fork260509-*     ~75 MB Git 副本
+#   - graphify-out     ~15 MB 知識圖譜 cache
+# 修正後預期 build context < 5 MB
+
+# === 大目錄 ===
+# admin-api source 與 target（new-admin-base-web build 不需要；admin-api 自己 build 走 ../admin-api 不受本檔影響）
+admin-api/
+
+# 795 MB pnpm 套件 — builder stage 會 pnpm install 重建
+admin-web/node_modules/
+
+# vite output — Dockerfile 內 pnpm build 重做
+admin-web/dist/
+
+admin-web/.turbo/
+admin-web/coverage/
+admin-web/.git
+admin-web/.vscode/
+admin-web/.idea/
+
+# === Fork 源倉本地副本（gitignored 但仍存在本機）===
+fork260509-soybean-admin/
+fork260509-soybean-admin-docs/
+fork260509-soybean-admin-nestjs/
+fork260509-soybean-admin-rust/
+
+# === 知識圖譜 cache ===
+graphify-out/
+
+# === VCS / 工具內部目錄 ===
+.git/
+.vscode/
+.idea/
+.specify/
+.claude/
+
+# === Docs / specs（image build 不需要）===
+specs/
+docs/
+
+# === 頂層雜項 ===
+*.md
+.gitmodules
+.gitattributes
+.editorconfig
