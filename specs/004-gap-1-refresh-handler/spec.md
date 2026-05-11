@@ -184,7 +184,7 @@
 - [x] migration framework 對「加 column NOT NULL with backfill」處理慣例 — ✅ 既有 migrations 全是 `create_table`、無 ALTER 範例。本 feature 採 3-step（add nullable → raw SQL `UPDATE` backfill → modify NOT NULL；raw SQL 用既有 `Statement::from_string` pattern）。
 - [x] `Res::new_data` 把 `AuthOutput` 包進 `data` field — ✅（feature 3 已驗）`Res::<T>::new_data(data)` → `{ code: 200, data: {...}, msg: "success", success: true }`，HTTP 200。`AppError { code: 401 }` → IntoResponse → `Res::new_error` → `{ code: 401, data: null, msg: "...", success: false }`，HTTP **仍 200**（envelope code 為依據；admin-web 攔截器既有約定）。
 - [x] axum middleware 注入 IP 的精確方式 — ✅ login handler 用 `ClientIp::get_real_ip(&headers)` 讀 X-Forwarded-For / X-Real-IP 等 header；無有效 header 時 fallback 到 `ConnectInfo<SocketAddr>` 的 `addr.ip().to_string()`。refresh handler 沿用同 pattern。
-- [x] `REFRESH_TOKEN_EXPIRE` 環境變數命名 — ✅ 實際 binding 是 **`APP_JWT_REFRESH_TOKEN_EXPIRE`**（field 加在 `JwtConfig` struct 內，config crate 用 `APP` prefix + `_` 嵌套展開為 `APP_JWT_*`）。**spec FR-433 / research R9 寫的 `APP_JWT_REFRESH_TOKEN_EXPIRE` 是 spec bug**（已在 T004 fixup amend + analyze fix 修正、deploy/.env.example 用正確名）。
+- [x] `REFRESH_TOKEN_EXPIRE` 環境變數命名 — ✅ 實際 binding 是 **`APP_JWT_REFRESH_TOKEN_EXPIRE`**（field 加在 `JwtConfig` struct 內，config crate 用 `APP` prefix + `_` 嵌套展開為 `APP_JWT_*`）。**原 spec FR-433 / research R9 寫的 `APP_REFRESH_TOKEN_EXPIRE` 是 spec bug**，正確名為 `APP_JWT_REFRESH_TOKEN_EXPIRE`（已在 T004 fixup amend + T011 spec 全文 rename 修正、deploy/.env.example 用正確名）。
 
 ### 不在範圍
 
