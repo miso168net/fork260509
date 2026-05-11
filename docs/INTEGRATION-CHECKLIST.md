@@ -37,7 +37,7 @@ GAP 詳細描述見 `docs/INTEGRATION-PLAN.md §4`。
 
 - [x] **驗證預設密碼是不是 `Soybean@123.`** — ✅ **驗完為 `123456`**（T009 動態 acceptance 實測，2026-05-11；CLAUDE.md §5.1 已更新）
 - [ ] **驗證 `process_collected_routes()` 是 idempotent upsert**（feature 1 first/second boot 對比 sys_endpoint count）
-- [ ] **驗證 Rust 是否有 `/health` endpoint** — ⚠️ **feature 7 R5 verify：0 命中**（admin-api/server/router/ + server/api/ grep `"/health"` 皆無 mount）；feature 7 dynamic acceptance T010 等此項補上才能跑（depends_on: service_healthy 卡住）；建議 feature 6 一併補（已加入下方 retrospective backlog）
+- [x] **驗證 Rust 是否有 `/health` endpoint** — ✅ **hotfix 8ae2432（admin-api inner）+ outer 93d728c**：feature 7 R5 verify 為 0 命中後，per constitution §VI(b) 救火例外補上；驗證 `docker compose up -d` 全 stack 自動 healthy
 - [x] **在 `sys_tokens` 表加 `expires_at` 欄位** — ✅ **feature 4 完成**（admin-api inner commit `719ab75` migration + entity）
 
 ## Retrospective code review backlog（2026-05-11）
@@ -55,7 +55,8 @@ review 4 features 完成後留下的 backlog 條目：
 | 4-I1 | 004 | feature 8 解（已加進 roadmap） | TZ-skew column-type 範疇外 issue — schema-level TIMESTAMPTZ migration |
 | 4-I2 | 004 | 觀察、不修 | `JwtConfig::get_config` 500 fallback 可能 silent regress；當前 startup ordering 正確、不修；future config refactor 時順帶評估 |
 | 4-M2 ~ M5 | 004 | 部分已修 / minor | M2 已修（race comment 加在 b502528）；M3 map_err style 也順帶修；M4/M5 留作 future cleanup |
-| 7-I1 | 007 | feature 6 必補 | admin-api `/health` endpoint 缺失（feature 1 compose.yaml line 99 healthcheck 預期此 endpoint）；feature 7 dynamic acceptance T010 阻塞於此項；axum `.route("/health", get(\|\| async { "ok" }))` 級別小 |
+| 7-I1 | 007 | ✅ **已修**（hotfix admin-api 8ae2432 + outer 93d728c） | admin-api `/health` endpoint：directly `app.route("/health", get(\|\| async { "ok" }))` in `initialize_admin_router`，不走 add_route!（不污染 sys_endpoint）、不掛 auth/casbin（public probe）；返回 HTTP 200 "ok" |
+| 1-I5 | 001 | ✅ **已修**（hotfix 7b05f11） | admin-api healthcheck `localhost` → `127.0.0.1`：alpine /etc/hosts 同時 map localhost 到 IPv4/IPv6，wget 可能先試 ::1，但 admin-api 只 bind 0.0.0.0 IPv4 → IPv6 連線 refused → healthcheck 失敗；改 127.0.0.1 直連避免 hostname 解析。7-I1 驗證時發現 |
 | 7-M1 | 007 | future hardening | Dockerfile base image 用 floating minor tag（node:22-alpine, nginx:1.27-alpine），可進階 pin 到 digest 提升 true reproducibility |
 | 7-M2 | 007 | future hardening | runtime 仍 master-as-root（nginx 預設）；加 `USER nginx` + 改 pid 路徑可進一步硬化（接觸面小，當前可接受） |
 | 7-M3 | 007 | future / hygiene | outer .dockerignore 與 admin-web/.dockerignore 雙存；admin-web/.dockerignore 在 outer-root context 下無效但作 fallback；future 若 context 改回 admin-web/ 即可直用 |
