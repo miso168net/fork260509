@@ -136,12 +136,20 @@ Operator 在 CI 或本機反覆 build admin-web image。每次 build 都使用 d
 - **A7**: Image registry / 推送策略不在本 feature 範圍 —— 本地 build 即可，不要求推 docker hub / ghcr.io
 - **A8**: 本 feature 內 dynamic acceptance（瀏覽器登入 + deep link 測試）在 docker compose 完整可運作後執行；若 feature 6 尚未 merge 導致 admin-api 容器化無法跑，先做 static acceptance（image build + size + structural 檢查），dynamic 走 follow-up
 
-### 待驗證的上游慣例（依 constitution §IV，於 plan 階段透過讀 admin-web 與 deploy/ 既有檔案驗證 + writeback；不在本 spec 階段揣測）
+### 待驗證的上游慣例（依 constitution §IV，於 plan / implement 階段透過讀 admin-web 與 deploy/ 既有檔案驗證 + writeback）
 
-- **R1**: `admin-web/package.json` 的 `packageManager` 欄位實際是哪個 pnpm 版本（影響 Dockerfile 是否需 corepack activate vs 直接 install pnpm@<x>.<y>.<z>）
-- **R2**: `admin-web/package.json` `scripts.build` 命令的精確輸出目錄（預設 `dist/` 但 vite config 可能 override）
-- **R3**: admin-web 是否在任何頁面使用 WebSocket / SSE / 長連線（grep `src/` for `WebSocket\|EventSource\|socket.io`）
-- **R4**: ✅ **Resolved**（§Clarifications Q1 + research.md R4）—— feature 1 `deploy/nginx/default.conf` 已 read：含 SPA fallback、`/api/*` proxy、`/health` location、static cache、gzip；本 feature Dockerfile runtime stage 直接 `COPY deploy/nginx/default.conf /etc/nginx/conf.d/default.conf` 採用既有 config，無 merge 動作
-- **R5**: feature 1 是否已為 admin-api 補 `/health` endpoint（影響 `depends_on: service_healthy` 是否可用）
-- **R6**: admin-web .env 在 prod build 時實際被讀的優先順序（`.env` < `.env.production` < `.env.local`）—— 確認 prod build 用的是哪份、bake 後值為何
-- **R7**: 既有 admin-web `src/` 是否含 backend hardcoded URL（grep `localhost:10001\|127\.0\.0\.1`），確認 Dockerfile 沒漏掉任何需 rebuild 的點
+**全部 R1-R7 已驗（research.md Phase 0 + T007 evidence）** ✅
+
+- **R1**: ✅ admin-web/package.json 無 `packageManager`、但 `engines.pnpm: ">=10.5.0"`；Dockerfile 採 `RUN npm install -g pnpm@${PNPM_VERSION}`（ARG default = 10.5.0）pin 精確版本。Evidence: `grep "pnpm" admin-web/package.json` → `"pnpm": ">=10.5.0"` only
+- **R2**: ✅ vite.config.ts 之 `build:` block **無**顯式 outDir 設定 → Vite 預設 `dist/`；Dockerfile `COPY --from=builder /app/dist /usr/share/nginx/html`. Evidence: `grep "outDir" admin-web/vite.config.ts admin-web/build/*.ts` → 0 hits
+- **R3**: ✅ admin-web 不用 WebSocket / SSE / socket.io；既有 nginx default.conf 之 Upgrade header 留著無害。Evidence: `grep -rln "WebSocket\|EventSource\|socket\.io" admin-web/src/` → 0 hits
+- **R4**: ✅ §Clarifications Q1 + research R4 + implementation verify —— `deploy/nginx/default.conf` 直接被 Dockerfile COPY 進 runtime stage（無 merge）；feature 1 既有設計已對齊 Option A（compose 5 service，無獨立 nginx service）
+- **R5**: ❌ **admin-api 0 個 `/health` endpoint**（grep `"/health"` admin-api/server/ → 0 hits）；feature 1 compose.yaml line 99 預期此 endpoint 但實際未實作 → feature 7 dynamic acceptance 阻塞於此。**Listed in INTEGRATION-CHECKLIST 跨 feature 待驗證 + retrospective backlog 7-I1（feature 6 必補）**
+- **R6**: ✅ Vite env precedence 確認：`process.env` (Dockerfile ENV)（最高）> .env.[mode].local > .env.[mode] > .env.local > .env；admin-web/.env.prod 內 `VITE_SERVICE_BASE_URL=https://mock.apifox.cn/...`（mock，不適合 prod）由 Dockerfile ARG+ENV 注入 `/api` 覆蓋。Evidence: `cat admin-web/.env.prod` + compose.yaml line 112 build args
+- **R7**: ✅ admin-web/src/ 0 命中 hardcoded backend URL；build args approach 完整；Dockerfile 不需 patch 任何 src 內容。Evidence: `grep -rln "localhost:10001\|127\.0\.0\.1:1000\|http://.*10001" admin-web/src/` → 0 hits
+
+**Implementation discovery（3 條不在原 R# 範疇但 implementation 階段發現）**：
+
+- **D1**: admin-web/.npmrc 需在 pnpm install 之前 COPY（含 shamefully-hoist=true 解 @iconify/utils 透過 unocss.ts:5 引用之 ERR_MODULE_NOT_FOUND）。Fix: inner commit `bc8dba78`
+- **D2**: BuildKit cache mount 對 pnpm store 是 SC-706 ≤30s 之先決條件（搭配 outer .dockerignore）。Fix: inner commit `65f3060a`
+- **D3**: outer-root `.dockerignore` 是 admin-web image build 真正套用之 ignore 清單（compose context = outer 根）；FR-717 之 admin-web/.dockerignore 對 outer-root context 無效，僅作 fallback。Fix: outer commit `3692a71`。**另注意**：.dockerignore 與 .gitignore 同，**不支援 inline `#` comment**（整行包括 trailing comment 都視為 pattern）

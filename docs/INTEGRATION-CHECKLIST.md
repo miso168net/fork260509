@@ -21,7 +21,7 @@
 | 3 | `gap-0cd-rust-output-camel` | 0c, 0d | admin-api | admin-api serialize 對齊 admin-web (camelCase) | ~5 行 | ✅ | ✅ | ✅ | 完成 (e5e912b..143574d) |
 | 4 | `gap-1-refresh-handler` | 1 | admin-api | refresh token endpoint | ~80 行 | ✅ | ✅ | ✅ | 完成 (8c4e901..81b1a1a，admin-api inner 719ab75..b502528；含 retrospective review M1/4-M2 doc fixes) |
 | 5 | `admin-web-cleanup` | 2, 3, 4 | admin-web | admin-api 對齊後的 admin-web 清理 | ~25 行 | ✅ | ✅ | ✅ | 完成 (05929e4..052748f，admin-web inner 29874dd3..7b167559) |
-| 7 | `admin-web-dockerfile` | (非 GAP) | admin-web | multi-stage Dockerfile (pnpm build → nginx serve) | 中 | ☐ | ☐ | ☐ | 待 |
+| 7 | `admin-web-dockerfile` | (非 GAP) | admin-web | multi-stage Dockerfile (pnpm build → nginx serve) | 中 | ✅ | ✅ | ✅ | 完成 (d8512ce..184e3ea，admin-web inner a50eaa67..65f3060a；含 3 個 implementation discoveries：.npmrc COPY 時序 / BuildKit cache mount / outer-root .dockerignore) |
 | 6 | `dockerfile-envsubst` | (非 GAP) | admin-api | envsubst 模板化 + 吸收 retrospective review 三條 hardening：1-I1（redis healthcheck CMD-SHELL form）、1-I2（compose env wire APP_JWT_REFRESH_TOKEN_EXPIRE）、1-I3（JWT_ISSUER required gate） | 中-大 | ☐ | ☐ | ☐ | 待 |
 | 8 | `gap-tz-1-timestamptz-migration` | (非原 GAP；retrospective review 4-I1) | admin-api | `sys_tokens.{expires_at, created_at, login_time}` TIMESTAMP → TIMESTAMPTZ schema migration + Rust 改用 `DateTimeWithTimeZone` + write-path 改 `Utc::now()` 避免 TZ skew | 中 | ☐ | ☐ | ☐ | 待 |
 
@@ -37,7 +37,7 @@ GAP 詳細描述見 `docs/INTEGRATION-PLAN.md §4`。
 
 - [x] **驗證預設密碼是不是 `Soybean@123.`** — ✅ **驗完為 `123456`**（T009 動態 acceptance 實測，2026-05-11；CLAUDE.md §5.1 已更新）
 - [ ] **驗證 `process_collected_routes()` 是 idempotent upsert**（feature 1 first/second boot 對比 sys_endpoint count）
-- [ ] **驗證 Rust 是否有 `/health` endpoint**（feature 1 compose healthcheck 用；若無，feature 1 會順帶補 endpoint）
+- [ ] **驗證 Rust 是否有 `/health` endpoint** — ⚠️ **feature 7 R5 verify：0 命中**（admin-api/server/router/ + server/api/ grep `"/health"` 皆無 mount）；feature 7 dynamic acceptance T010 等此項補上才能跑（depends_on: service_healthy 卡住）；建議 feature 6 一併補（已加入下方 retrospective backlog）
 - [x] **在 `sys_tokens` 表加 `expires_at` 欄位** — ✅ **feature 4 完成**（admin-api inner commit `719ab75` migration + entity）
 
 ## Retrospective code review backlog（2026-05-11）
@@ -54,6 +54,12 @@ review 4 features 完成後留下的 backlog 條目：
 | 4-I1 | 004 | feature 8 解（已加進 roadmap） | TZ-skew column-type 範疇外 issue — schema-level TIMESTAMPTZ migration |
 | 4-I2 | 004 | 觀察、不修 | `JwtConfig::get_config` 500 fallback 可能 silent regress；當前 startup ordering 正確、不修；future config refactor 時順帶評估 |
 | 4-M2 ~ M5 | 004 | 部分已修 / minor | M2 已修（race comment 加在 b502528）；M3 map_err style 也順帶修；M4/M5 留作 future cleanup |
+| 7-I1 | 007 | feature 6 必補 | admin-api `/health` endpoint 缺失（feature 1 compose.yaml line 99 healthcheck 預期此 endpoint）；feature 7 dynamic acceptance T010 阻塞於此項；axum `.route("/health", get(\|\| async { "ok" }))` 級別小 |
+| 7-M1 | 007 | future hardening | Dockerfile base image 用 floating minor tag（node:22-alpine, nginx:1.27-alpine），可進階 pin 到 digest 提升 true reproducibility |
+| 7-M2 | 007 | future hardening | runtime 仍 master-as-root（nginx 預設）；加 `USER nginx` + 改 pid 路徑可進一步硬化（接觸面小，當前可接受） |
+| 7-M3 | 007 | future / hygiene | outer .dockerignore 與 admin-web/.dockerignore 雙存；admin-web/.dockerignore 在 outer-root context 下無效但作 fallback；future 若 context 改回 admin-web/ 即可直用 |
+| 7-M4 | 007 | future enhancement | OCI image labels 可加 `image.revision`（git SHA）+ `image.created`（build timestamp），透過 ARG 注入；當前 build 不便追溯產出對應 commit |
+| 7-M5 | 007 | commit msg minor | a50eaa67 commit body 寫「6 個 VITE_*」實際 Dockerfile 為 5 個 VITE_* + 1 個 PNPM_VERSION（toolchain）；不 amend，記為歷史 |
 
 ## 維護指引
 
