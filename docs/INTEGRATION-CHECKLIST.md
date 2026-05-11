@@ -47,9 +47,9 @@ review 4 features 完成後留下的 backlog 條目：
 | ID | Feature | 處理方式 | 備註 |
 |---|---|---|---|
 | 1-I1 | 001 | feature 6 一起做 | redis-cli healthcheck `CMD` form 用 `${REDIS_PASSWORD}` interpolated 不夠 robust，改 `CMD-SHELL` + `$$REDIS_PASSWORD` |
-| 1-I2 | 001 | feature 6 一起做 | `APP_JWT_REFRESH_TOKEN_EXPIRE` 在 .env.example 但沒 wire 進 compose.yaml `new-admin-rust-api.environment` |
+| 1-I2 | 001 | ✅ **已修**（hotfix b7a74b5） | `APP_JWT_REFRESH_TOKEN_EXPIRE` wire 進 compose.yaml；與 1-I4 同 hotfix 一併補 |
 | 1-I3 | 001 | feature 6 一起做 | `JWT_ISSUER` 預設值 `https://github.com/your-org/new-admin` placeholder 可能 ship prod；改 required gate 或 sentinel |
-| **1-I4** | 001 | **feature 6 必 fix（critical）** | **compose.yaml `new-admin-rust-api.environment` 全部缺 `APP_` 前綴**（admin-api 用 `APP_` prefix + `_` separator 讀 config）→ 所有 env override 失效 → admin-api 退回 application.yaml 預設（連 `pgbouncer:6432`）→ restart loop。F7-T010 dynamic acceptance 發現；當前 workaround 是 local `compose.override.yaml`（未 commit）。永久 fix 屬 feature 6 envsubst（per constitution §II）或最小 fix：所有 env 加 `APP_` 前綴（如 `APP_DATABASE_URL`、`APP_JWT_JWT_SECRET`、`APP_REDIS_URL` 等） |
+| 1-I4 | 001 | ✅ **已修**（hotfix b7a74b5） | compose.yaml `new-admin-rust-api.environment` 全部 env vars 加 `APP_` 前綴（per admin-api `APP_` prefix + `_` separator config 約定）；F7-T010 dynamic acceptance 發現後立即 hotfix（per constitution §VI(b) 救火例外）；驗證：無 override 純 compose.yaml 起 stack 成功、`/api/auth/login` 200 + JWT |
 | 1-M1~M5 | 001 | future hardening / 不阻塞 | postgres start_period / WebSocket header / gzip_proxied / 小 doc 漂移 |
 | 2-M4 | 002 | feature 5 一起 evaluate | `VITE_SERVICE_EXPIRED_TOKEN_CODES=401` 會讓 wrong-password 401 也觸發 refresh flow — admin-web 端 login error 路徑需 dedupe |
 | 4-I1 | 004 | feature 8 解（已加進 roadmap） | TZ-skew column-type 範疇外 issue — schema-level TIMESTAMPTZ migration |
