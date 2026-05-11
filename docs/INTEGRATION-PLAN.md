@@ -9,7 +9,7 @@
 | 名稱 | 是什麼 | 對應目錄 | git remote |
 |---|---|---|---|
 | **`new-admin-root`** | 傘狀 monorepo（追蹤 docs/、deploy/、本計畫） | `.`（workspace root） | TBD（推到自己的 GitHub） |
-| **`new-admin-base-web`** | `fork260509-soybean-admin` 上的新分支 | `admin-web/` (git worktree) | `miso168net/fork260509-soybean-admin` 的 `new-admin-base-web` 分支 |
+| **`new-admin-base-web`** | `fork260509-soybean-admin` 上的新分支 | `admin-web/` (git worktree) | `miso168net/fork260509-soybean-admin-base` 的 `new-admin-base-web` 分支 |
 | **`new-admin-rust-api`** | `fork260509-soybean-admin-rust` 上的新分支 | `admin-api/` (git worktree) | `miso168net/fork260509-soybean-admin-rust` 的 `new-admin-rust-api` 分支 |
 
 **重點**：`admin-web/` 與 `admin-api/` 不是檔案複製，是 git worktree。`.git` 是檔案而非目錄，指向源倉的 `worktrees/`。在 `admin-web/` 內 commit 會直接寫入 fork260509-soybean-admin 的 `new-admin-base-web` 分支；外層 `new-admin-root` 不追蹤這兩個目錄（已在 .gitignore）。
@@ -214,7 +214,7 @@ worktree 給本機操作（commit/push 推回 fork），submodule 給外層 git 
 cat > .gitmodules << 'EOF'
 [submodule "admin-web"]
     path = admin-web
-    url = https://github.com/miso168net/fork260509-soybean-admin.git
+    url = https://github.com/miso168net/fork260509-soybean-admin-base.git
     branch = new-admin-base-web
 [submodule "admin-api"]
     path = admin-api

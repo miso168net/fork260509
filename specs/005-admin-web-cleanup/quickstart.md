@@ -176,7 +176,7 @@ pnpm build       # production build，必 PASS（vite 產出 dist/）
 ```bash
 cd admin-web
 git push origin new-admin-base-web
-# 應成功推到 miso168net/fork260509-soybean-admin
+# 應成功推到 miso168net/fork260509-soybean-admin-base
 ```
 
 ### A.4 outer commit（第二段）

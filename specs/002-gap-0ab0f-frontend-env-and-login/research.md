@@ -147,7 +147,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 # Step D：所有 inner commits 完成後一次 push fork remote
 git push origin new-admin-base-web
-# 預期：To https://github.com/miso168net/fork260509-soybean-admin.git
+# 預期：To https://github.com/miso168net/fork260509-soybean-admin-base.git
 #       <old-SHA>..<new-SHA>  new-admin-base-web -> new-admin-base-web
 ```
 

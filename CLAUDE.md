@@ -11,7 +11,7 @@
 | 命名 | 是什麼 | 對應目錄 | remote / 來源 | 在外層 git |
 |---|---|---|---|---|
 | `new-admin-root` | 傘狀 monorepo（**就是當前 workspace**） | `.` | （TBD：未來推到自己的 GitHub） | 自身 |
-| `new-admin-base-web` | `fork260509-soybean-admin` 上的新分支 | `admin-web/`（worktree） | push 回 `miso168net/fork260509-soybean-admin` 的 `new-admin-base-web` 分支 | submodule（記 SHA pin） |
+| `new-admin-base-web` | `fork260509-soybean-admin` 上的新分支 | `admin-web/`（worktree） | push 回 `miso168net/fork260509-soybean-admin-base` 的 `new-admin-base-web` 分支 | submodule（記 SHA pin） |
 | `new-admin-rust-api` | `fork260509-soybean-admin-rust` 上的新分支 | `admin-api/`（worktree） | push 回 `miso168net/fork260509-soybean-admin-rust` 的 `new-admin-rust-api` 分支 | submodule（記 SHA pin） |
 
 **短名 vs 長名 — 命名用法分工**：實務上有兩組稱呼，依場景挑：
@@ -137,7 +137,7 @@ fork260509/                                ← workspace root（傘狀 repo new-
 cd admin-web
 git status                                    # 確認在 new-admin-base-web 分支
 git add <files> && git commit -m "..."
-git push origin new-admin-base-web            # 推到 miso168net/fork260509-soybean-admin
+git push origin new-admin-base-web            # 推到 miso168net/fork260509-soybean-admin-base
 
 # === 第二段：回外層更新 SHA pin ===
 cd ..
@@ -282,7 +282,7 @@ cd admin-api && git push -u origin new-admin-rust-api && cd ..
 cat > .gitmodules << 'EOF'
 [submodule "admin-web"]
     path = admin-web
-    url = https://github.com/miso168net/fork260509-soybean-admin.git
+    url = https://github.com/miso168net/fork260509-soybean-admin-base.git
     branch = new-admin-base-web
 [submodule "admin-api"]
     path = admin-api

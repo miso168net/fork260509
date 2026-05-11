@@ -24,7 +24,7 @@ Pushed to `miso168net/fork260509-soybean-admin-rust@new-admin-rust-api` ✅
 |---|---|---|
 | `a31a869c` | fix | 6-I2 Dockerfile HEALTHCHECK 用 127.0.0.1 避 IPv6 解析（同 1-I5，**discovery 2**） |
 
-Pushed to `miso168net/fork260509-soybean-admin@new-admin-base-web` ✅
+Pushed to `miso168net/fork260509-soybean-admin-base@new-admin-base-web` ✅
 
 ### Outer commits（已 commit）
 

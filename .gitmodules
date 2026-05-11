@@ -1,6 +1,6 @@
 [submodule "admin-web"]
 	path = admin-web
-	url = https://github.com/miso168net/fork260509-soybean-admin.git
+	url = https://github.com/miso168net/fork260509-soybean-admin-base.git
 	branch = new-admin-base-web
 [submodule "admin-api"]
 	path = admin-api

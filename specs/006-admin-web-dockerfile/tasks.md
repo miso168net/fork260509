@@ -80,7 +80,7 @@ description: "Tasks for feature 006-admin-web-dockerfile"
 
 ### Submodule push（§V 第一段 push）
 
-- [ ] T005 在 admin-web/ 內 `git push origin new-admin-base-web` 把 T002 之 inner commit 推到 fork（`miso168net/fork260509-soybean-admin`）。**NEEDS USER AUTHORIZATION**（per CLAUDE.md §5 全域 push 確認規則）—— 推前先問使用者：「Inner commit 已落、ready to push admin-web fork？」
+- [ ] T005 在 admin-web/ 內 `git push origin new-admin-base-web` 把 T002 之 inner commit 推到 fork（`miso168net/fork260509-soybean-admin-base`）。**NEEDS USER AUTHORIZATION**（per CLAUDE.md §5 全域 push 確認規則）—— 推前先問使用者：「Inner commit 已落、ready to push admin-web fork？」
 
 ### Outer SHA pin commit（§V 第二段）
 

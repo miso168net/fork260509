@@ -18,7 +18,7 @@
 | `bc8dba78` | fix | Dockerfile 早期 COPY .npmrc 讓 shamefully-hoist 生效 |
 | `65f3060a` | perf | Dockerfile pnpm install 加 BuildKit cache mount |
 
-Pushed to `miso168net/fork260509-soybean-admin@new-admin-base-web` ✅
+Pushed to `miso168net/fork260509-soybean-admin-base@new-admin-base-web` ✅
 
 ### Outer commits
 

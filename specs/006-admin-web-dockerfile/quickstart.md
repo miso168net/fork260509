@@ -98,7 +98,7 @@ COPY deploy/nginx/default.conf /etc/nginx/conf.d/default.conf
 # OCI image labels
 LABEL org.opencontainers.image.title="new-admin-base-web" \
       org.opencontainers.image.description="SoybeanAdmin frontend served by nginx" \
-      org.opencontainers.image.source="https://github.com/miso168net/fork260509-soybean-admin"
+      org.opencontainers.image.source="https://github.com/miso168net/fork260509-soybean-admin-base"
 
 # 對外暴露 80（compose 映射 ${WEB_PORT:-8080}:80）
 EXPOSE 80
@@ -199,7 +199,7 @@ docker run --rm --entrypoint sh new-admin-base-web -c '
 ```bash
 cd /mnt/d/AnewSpaces/x_Project/fork260509/admin-web
 git push origin new-admin-base-web
-# 應成功推到 miso168net/fork260509-soybean-admin
+# 應成功推到 miso168net/fork260509-soybean-admin-base
 ```
 
 ---

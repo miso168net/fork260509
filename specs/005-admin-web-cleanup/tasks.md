@@ -81,7 +81,7 @@ description: "Tasks for feature 005-admin-web-cleanup"
 
 ### Inner Push（§V 第一段尾）
 
-- [ ] T006 在 admin-web/ worktree 內 push fork branch：`cd admin-web && git push origin new-admin-base-web` 推 T002 + T003 + T004 三個 inner commits 到 `https://github.com/miso168net/fork260509-soybean-admin.git` 的 `new-admin-base-web` branch。**push 需 user 授權**（CLAUDE.md §5）。
+- [ ] T006 在 admin-web/ worktree 內 push fork branch：`cd admin-web && git push origin new-admin-base-web` 推 T002 + T003 + T004 三個 inner commits 到 `https://github.com/miso168net/fork260509-soybean-admin-base.git` 的 `new-admin-base-web` branch。**push 需 user 授權**（CLAUDE.md §5）。
 
 ### Outer Commit（§V 第二段）
 

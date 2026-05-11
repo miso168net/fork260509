@@ -90,7 +90,7 @@ e704988a fix(admin-web): GAP-0a + 0b 對齊 admin-rust-api wire-level codes
 
 ### Segment 1: Inner Commits (admin-web/ worktree)
 
-**Branch**: new-admin-base-web (miso168net/fork260509-soybean-admin)
+**Branch**: new-admin-base-web (miso168net/fork260509-soybean-admin-base)
 
 **Commits**:
 ```
@@ -106,7 +106,7 @@ cd admin-web && git branch -v
 
 ### Segment 2: Fork Remote Push
 
-**Fork remote**: https://github.com/miso168net/fork260509-soybean-admin.git
+**Fork remote**: https://github.com/miso168net/fork260509-soybean-admin-base.git
 
 **Push range**: 42fb7b37..29874dd3 (new-admin-base-web)
 

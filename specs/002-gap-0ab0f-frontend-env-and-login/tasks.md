@@ -45,7 +45,7 @@ description: "Tasks for feature 002-gap-0ab0f-frontend-env-and-login"
 
 - [ ] T002 [US1] 在 `admin-web/.env` 改 4 行 value（GAP-0a + GAP-0b）：`VITE_SERVICE_SUCCESS_CODE=200`（line 32 由 0000）、`VITE_SERVICE_LOGOUT_CODES=`（line 35 由 8888,8889 清空）、`VITE_SERVICE_MODAL_LOGOUT_CODES=`（line 38 由 7777,7778 清空）、`VITE_SERVICE_EXPIRED_TOKEN_CODES=401`（line 41 由 9999,9998,3333）。在 admin-web/ worktree 內 inner commit：`fix(admin-web): GAP-0a + 0b 對齊 admin-rust-api wire-level codes`（commit message 範本見 quickstart.md §1.2）。
 - [ ] T003 [US1] 在 `admin-web/src/service/api/auth.ts` 改 1 行 data field rename（GAP-0f）：`fetchLogin` 函式內 data 物件 `{ userName, password }` 改為 `{ identifier: userName, password }`（保留入參名 `userName`）。在 admin-web/ worktree 內 inner commit：`fix(admin-web): GAP-0f login body field userName → identifier`（commit message 範本見 quickstart.md §1.2）。
-- [ ] T004 [US1] 在 `admin-web/` worktree 內 push fork branch：`cd admin-web && git push origin new-admin-base-web` 推 T002 + T003 兩個 inner commits 到 `https://github.com/miso168net/fork260509-soybean-admin.git` 的 `new-admin-base-web` branch。
+- [ ] T004 [US1] 在 `admin-web/` worktree 內 push fork branch：`cd admin-web && git push origin new-admin-base-web` 推 T002 + T003 兩個 inner commits 到 `https://github.com/miso168net/fork260509-soybean-admin-base.git` 的 `new-admin-base-web` branch。
 
 ### Outer Commit（§V 第二段）
 

@@ -23,7 +23,7 @@
   - `VITE_AUTH_ROUTE_MODE=static`
   - `VITE_STATIC_SUPER_ROLE=R_SUPER`
 - **Output image labels** (建議)：
-  - `org.opencontainers.image.source=https://github.com/miso168net/fork260509-soybean-admin`
+  - `org.opencontainers.image.source=https://github.com/miso168net/fork260509-soybean-admin-base`
   - `org.opencontainers.image.title=new-admin-base-web`
   - `org.opencontainers.image.description=SoybeanAdmin frontend served by nginx`
 

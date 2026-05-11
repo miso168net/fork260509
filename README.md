@@ -7,7 +7,7 @@
 | 子件 | 來源 | 對應目錄 |
 |---|---|---|
 | 傘狀 repo | 本 repo `miso168net/fork260509` | `.` |
-| 前端（base-web） | `miso168net/fork260509-soybean-admin` 的 `new-admin-base-web` 分支 | `admin-web/` (submodule) |
+| 前端（base-web） | `miso168net/fork260509-soybean-admin-base` 的 `new-admin-base-web` 分支 | `admin-web/` (submodule) |
 | 後端（rust-api） | `miso168net/fork260509-soybean-admin-rust` 的 `new-admin-rust-api` 分支 | `admin-api/` (submodule) |
 
 ---
@@ -60,7 +60,7 @@ git submodule status | tee /tmp/pins.txt
 rm -rf admin-web admin-api
 
 # 步驟 4：另外 clone 兩個 fork 源倉
-git clone https://github.com/miso168net/fork260509-soybean-admin.git
+git clone https://github.com/miso168net/fork260509-soybean-admin-base.git
 git clone https://github.com/miso168net/fork260509-soybean-admin-rust.git
 
 # 步驟 5：源倉切到 main，再用 worktree checkout 既有分支

@@ -157,7 +157,7 @@ Co-Authored-By: ...
 | 層 | 倉 | 追蹤 |
 |---|---|---|
 | outer | `./ (本 repo)` ⊂ `miso168net/fork260509@new-admin-root` | spec / plan / tasks 文件、deploy 設定、constitution、graphify 產出、submodule SHA pin |
-| inner (worktree) | `admin-web/` ⊂ `miso168net/fork260509-soybean-admin@new-admin-base-web` | 前端 source code |
+| inner (worktree) | `admin-web/` ⊂ `miso168net/fork260509-soybean-admin-base@new-admin-base-web` | 前端 source code |
 | inner (worktree) | `admin-api/` ⊂ `miso168net/fork260509-soybean-admin-rust@new-admin-rust-api` | 後端 source code |
 
 詳細操作手冊（worktree 建立、submodule 同步、故障處理、Claude session 開場 SOP）見 `CLAUDE.md §9`。
