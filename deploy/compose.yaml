@@ -101,7 +101,10 @@ services:
     networks:
       - admin-net
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:10001/health"]
+      # 1-I5 fix（7-I1 驗證時發現）：用 127.0.0.1 而非 localhost 避 IPv6 解析
+      # alpine /etc/hosts 同時 map localhost → 127.0.0.1 與 ::1，wget 可能先試 ::1，
+      # 而 admin-api 只 bind 0.0.0.0（IPv4）→ IPv6 連線 refused → healthcheck 失敗
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:10001/health"]
       interval: 15s
       timeout: 5s
       retries: 5
