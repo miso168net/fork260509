@@ -21,7 +21,7 @@
 | 3 | `gap-0cd-rust-output-camel` | 0c, 0d | admin-api | admin-api serialize 對齊 admin-web (camelCase) | ~5 行 | ✅ | ✅ | ✅ | 完成 (e5e912b..143574d) |
 | 4 | `gap-1-refresh-handler` | 1 | admin-api | refresh token endpoint | ~80 行 | ✅ | ✅ | ✅ | 完成 (8c4e901..81b1a1a，admin-api inner 719ab75..b502528；含 retrospective review M1/4-M2 doc fixes) |
 | 5 | `admin-web-cleanup` | 2, 3, 4 | admin-web | admin-api 對齊後的 admin-web 清理 | ~25 行 | ✅ | ✅ | ✅ | 完成 (05929e4..052748f，admin-web inner 29874dd3..7b167559) |
-| 7 | `admin-web-dockerfile` | (非 GAP) | admin-web | multi-stage Dockerfile (pnpm build → nginx serve) | 中 | ✅ | ✅ | ✅ | 完成 (d8512ce..184e3ea，admin-web inner a50eaa67..65f3060a；含 3 個 implementation discoveries：.npmrc COPY 時序 / BuildKit cache mount / outer-root .dockerignore) |
+| 7 | `admin-web-dockerfile` | (非 GAP) | admin-web | multi-stage Dockerfile (pnpm build → nginx serve) | 中 | ✅ | ✅ | ✅ | 完成 (d8512ce..184e3ea + T010 evidence，admin-web inner a50eaa67..65f3060a；含 3 個 implementation discoveries + T010 dynamic 5/5 PASS via local compose.override workaround；發現 1-I4 critical bug 需 feature 6 fix) |
 | 6 | `dockerfile-envsubst` | (非 GAP) | admin-api | envsubst 模板化 + 吸收 retrospective review 三條 hardening：1-I1（redis healthcheck CMD-SHELL form）、1-I2（compose env wire APP_JWT_REFRESH_TOKEN_EXPIRE）、1-I3（JWT_ISSUER required gate） | 中-大 | ☐ | ☐ | ☐ | 待 |
 | 8 | `gap-tz-1-timestamptz-migration` | (非原 GAP；retrospective review 4-I1) | admin-api | `sys_tokens.{expires_at, created_at, login_time}` TIMESTAMP → TIMESTAMPTZ schema migration + Rust 改用 `DateTimeWithTimeZone` + write-path 改 `Utc::now()` 避免 TZ skew | 中 | ☐ | ☐ | ☐ | 待 |
 
@@ -49,6 +49,7 @@ review 4 features 完成後留下的 backlog 條目：
 | 1-I1 | 001 | feature 6 一起做 | redis-cli healthcheck `CMD` form 用 `${REDIS_PASSWORD}` interpolated 不夠 robust，改 `CMD-SHELL` + `$$REDIS_PASSWORD` |
 | 1-I2 | 001 | feature 6 一起做 | `APP_JWT_REFRESH_TOKEN_EXPIRE` 在 .env.example 但沒 wire 進 compose.yaml `new-admin-rust-api.environment` |
 | 1-I3 | 001 | feature 6 一起做 | `JWT_ISSUER` 預設值 `https://github.com/your-org/new-admin` placeholder 可能 ship prod；改 required gate 或 sentinel |
+| **1-I4** | 001 | **feature 6 必 fix（critical）** | **compose.yaml `new-admin-rust-api.environment` 全部缺 `APP_` 前綴**（admin-api 用 `APP_` prefix + `_` separator 讀 config）→ 所有 env override 失效 → admin-api 退回 application.yaml 預設（連 `pgbouncer:6432`）→ restart loop。F7-T010 dynamic acceptance 發現；當前 workaround 是 local `compose.override.yaml`（未 commit）。永久 fix 屬 feature 6 envsubst（per constitution §II）或最小 fix：所有 env 加 `APP_` 前綴（如 `APP_DATABASE_URL`、`APP_JWT_JWT_SECRET`、`APP_REDIS_URL` 等） |
 | 1-M1~M5 | 001 | future hardening / 不阻塞 | postgres start_period / WebSocket header / gzip_proxied / 小 doc 漂移 |
 | 2-M4 | 002 | feature 5 一起 evaluate | `VITE_SERVICE_EXPIRED_TOKEN_CODES=401` 會讓 wrong-password 401 也觸發 refresh flow — admin-web 端 login error 路徑需 dedupe |
 | 4-I1 | 004 | feature 8 解（已加進 roadmap） | TZ-skew column-type 範疇外 issue — schema-level TIMESTAMPTZ migration |
