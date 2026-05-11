@@ -247,10 +247,10 @@ Quick reference（此處可能滯後 CHECKLIST，以 CHECKLIST 為準）：
 - 當前進行中：feature 3 `gap-0cd-rust-output-camel`（spec + clarify + plan 完成、tasks 待產）
 
 <!-- SPECKIT START -->
-**Active Spec**: [specs/007-dockerfile-envsubst/spec.md](specs/007-dockerfile-envsubst/spec.md)
-**Active Plan**: [specs/007-dockerfile-envsubst/plan.md](specs/007-dockerfile-envsubst/plan.md)
-**Phase**: Phase 1 完成（spec + clarify Q1=B sentinel exact-match + plan + Phase 0 research R1-R6 + Phase 1 data-model + contracts/entrypoint-contract + quickstart）
-**下一步**: `/speckit-tasks` → 產 tasks.md
+**Active Spec**: [specs/008-gap-tz-1-timestamptz-migration/spec.md](specs/008-gap-tz-1-timestamptz-migration/spec.md)
+**Active Plan**: [specs/008-gap-tz-1-timestamptz-migration/plan.md](specs/008-gap-tz-1-timestamptz-migration/plan.md)
+**Phase**: Implementation 完成（admin-api inner commit `48a20bc`；T001-T025 PASS — SC-001/002/003/004/006 全綠）
+**下一步**: 第二段 outer commit（submodule SHA pin bump → 48a20bc）+ 兩段 push 待用戶確認
 <!-- SPECKIT END -->
 
 ---
@@ -369,5 +369,5 @@ git log --oneline -5                  # 最近 5 個外層 commit，看 pin 變�
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at `specs/007-dockerfile-envsubst/plan.md`.
+at `specs/008-gap-tz-1-timestamptz-migration/plan.md`.
 <!-- SPECKIT END -->
