@@ -36,7 +36,7 @@ GAP 詳細描述見 `docs/INTEGRATION-PLAN.md §4`。
 依 constitution §IV「上游驗證」規則，這些項目會在對應 feature 的 spec.md Assumptions 段帶上、實作時驗、驗完勾掉並回填結果：
 
 - [x] **驗證預設密碼是不是 `Soybean@123.`** — ✅ **驗完為 `123456`**（T009 動態 acceptance 實測，2026-05-11；CLAUDE.md §5.1 已更新）
-- [ ] **驗證 `process_collected_routes()` 是 idempotent upsert**（feature 1 first/second boot 對比 sys_endpoint count）
+- [x] **驗證 `process_collected_routes()` 是 idempotent upsert** — ✅ **驗完 idempotent**（2026-05-11 feature 8 後補驗：sys_endpoint baseline count = 36；`docker compose restart new-admin-rust-api` ×1 後 = 36；再 restart ×1 後 = 36；3 次 observation 全部 0 duplicate `(path, method)` pair → upsert 邏輯正確、re-boot 不會 N×膨脹）
 - [x] **驗證 Rust 是否有 `/health` endpoint** — ✅ **hotfix 8ae2432（admin-api inner）+ outer 93d728c**：feature 7 R5 verify 為 0 命中後，per constitution §VI(b) 救火例外補上；驗證 `docker compose up -d` 全 stack 自動 healthy
 - [x] **在 `sys_tokens` 表加 `expires_at` 欄位** — ✅ **feature 4 完成**（admin-api inner commit `719ab75` migration + entity）
 
