@@ -76,14 +76,19 @@ services:
     image: new-admin-rust-api:latest    # 與 migration 的 build stage 共享 BuildKit cache（multi-stage layer dedupe）
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-new_admin}
-      DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-10}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
-      JWT_SECRET: ${JWT_SECRET:?must set JWT_SECRET}
-      JWT_ISSUER: ${JWT_ISSUER:-https://github.com/your-org/new-admin}
-      JWT_EXPIRE: ${JWT_EXPIRE:-7200}
-      SERVER_HOST: 0.0.0.0
-      SERVER_PORT: 10001
+      # admin-api 用 APP_ prefix + `_` separator 讀 env override（per server/config/src/env_config.rs）
+      # 1-I4 fix（F7-T010 dynamic acceptance 發現）：前一版全部缺 APP_ → admin-api 退回 application.yaml 預設（pgbouncer:6432）→ restart loop
+      APP_DATABASE_URL: postgres://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-new_admin}
+      APP_DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-10}
+      APP_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      APP_JWT_JWT_SECRET: ${JWT_SECRET:?must set JWT_SECRET}
+      APP_JWT_ISSUER: ${JWT_ISSUER:-https://github.com/your-org/new-admin}
+      APP_JWT_EXPIRE: ${JWT_EXPIRE:-7200}
+      # 1-I2 fix：refresh_token 過期時間（feature 4 引入），原 .env.example 有定義但未 wire 進 compose
+      APP_JWT_REFRESH_TOKEN_EXPIRE: ${APP_JWT_REFRESH_TOKEN_EXPIRE:-1209600}
+      APP_SERVER_HOST: 0.0.0.0
+      APP_SERVER_PORT: 10001
+      # RUST_LOG 與 TZ 維持原名（tracing crate / system timezone，非 admin-api config crate）
       RUST_LOG: ${RUST_LOG:-info}
       TZ: ${TZ:?must set TZ}
     depends_on:
