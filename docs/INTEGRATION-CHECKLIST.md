@@ -19,14 +19,17 @@
 | 1 | `deploy-infra` | (順帶 0e CORS) | outer | docker-compose + nginx + .env.example | 中 | ✅ | ✅ | ✅ | 完成 (3ff40de..1dbd3e9) |
 | 2 | `gap-0ab0f-frontend-env-and-login` | 0a, 0b, 0f | admin-web | admin-web env 對齊 + login body field | 5-7 行 | ✅ | ✅ | ✅ | 完成 (b873f69..c86358f) |
 | 3 | `gap-0cd-rust-output-camel` | 0c, 0d | admin-api | admin-api serialize 對齊 admin-web (camelCase) | ~5 行 | ✅ | ✅ | ✅ | 完成 (e5e912b..143574d) |
-| 4 | `gap-1-refresh-handler` | 1 | admin-api | refresh token endpoint | ~80 行 | ✅ | ✅ | ✅ | 完成 (8c4e901..b432783，admin-api inner 719ab75..84bc29a) |
+| 4 | `gap-1-refresh-handler` | 1 | admin-api | refresh token endpoint | ~80 行 | ✅ | ✅ | ✅ | 完成 (8c4e901..81b1a1a，admin-api inner 719ab75..b502528；含 retrospective review M1/4-M2 doc fixes) |
 | 5 | `admin-web-cleanup` | 2, 3, 4 | admin-web | admin-api 對齊後的 admin-web 清理 | ~25 行 | ☐ | ☐ | ☐ | 待 |
 | 7 | `admin-web-dockerfile` | (非 GAP) | admin-web | multi-stage Dockerfile (pnpm build → nginx serve) | 中 | ☐ | ☐ | ☐ | 待 |
-| 6 | `dockerfile-envsubst` | (非 GAP) | admin-api | envsubst 模板化 | 中 | ☐ | ☐ | ☐ | 待 |
+| 6 | `dockerfile-envsubst` | (非 GAP) | admin-api | envsubst 模板化 + 吸收 retrospective review 三條 hardening：1-I1（redis healthcheck CMD-SHELL form）、1-I2（compose env wire APP_JWT_REFRESH_TOKEN_EXPIRE）、1-I3（JWT_ISSUER required gate） | 中-大 | ☐ | ☐ | ☐ | 待 |
+| 8 | `gap-tz-1-timestamptz-migration` | (非原 GAP；retrospective review 4-I1) | admin-api | `sys_tokens.{expires_at, created_at, login_time}` TIMESTAMP → TIMESTAMPTZ schema migration + Rust 改用 `DateTimeWithTimeZone` + write-path 改 `Utc::now()` 避免 TZ skew | 中 | ☐ | ☐ | ☐ | 待 |
 
 GAP 詳細描述見 `docs/INTEGRATION-PLAN.md §4`。
 
-**建議實施順序**：1（基礎設施）→ 2（admin-web env 對齊）→ 3（admin-api 對齊）→ 驗 login（含 CDP）→ 4（refresh handler）→ 5（admin-web cleanup）→ 7（admin-web Dockerfile）→ 6（Dockerfile envsubst 收尾）。
+**建議實施順序**：1（基礎設施）→ 2（admin-web env 對齊）→ 3（admin-api 對齊）→ 驗 login（含 CDP）→ 4（refresh handler）→ 5（admin-web cleanup）→ 7（admin-web Dockerfile）→ 6（Dockerfile envsubst 收尾 + 吸收 retrospective hardening）→ 8（TZ-skew 根治）。
+
+**更新後 8-feature roadmap**（feature 1-4 完成、剩 5-8）：5 / 7 / 6 / 8 順序視 priority 與 prod readiness 需求；4-I1 TZ-skew 是 silent prod risk 但當前 admin-api UTC container 內部一致、可排在 feature 6 之後。
 
 ## 跨 feature 的待驗證項
 
@@ -36,6 +39,21 @@ GAP 詳細描述見 `docs/INTEGRATION-PLAN.md §4`。
 - [ ] **驗證 `process_collected_routes()` 是 idempotent upsert**（feature 1 first/second boot 對比 sys_endpoint count）
 - [ ] **驗證 Rust 是否有 `/health` endpoint**（feature 1 compose healthcheck 用；若無，feature 1 會順帶補 endpoint）
 - [x] **在 `sys_tokens` 表加 `expires_at` 欄位** — ✅ **feature 4 完成**（admin-api inner commit `719ab75` migration + entity）
+
+## Retrospective code review backlog（2026-05-11）
+
+review 4 features 完成後留下的 backlog 條目：
+
+| ID | Feature | 處理方式 | 備註 |
+|---|---|---|---|
+| 1-I1 | 001 | feature 6 一起做 | redis-cli healthcheck `CMD` form 用 `${REDIS_PASSWORD}` interpolated 不夠 robust，改 `CMD-SHELL` + `$$REDIS_PASSWORD` |
+| 1-I2 | 001 | feature 6 一起做 | `APP_JWT_REFRESH_TOKEN_EXPIRE` 在 .env.example 但沒 wire 進 compose.yaml `new-admin-rust-api.environment` |
+| 1-I3 | 001 | feature 6 一起做 | `JWT_ISSUER` 預設值 `https://github.com/your-org/new-admin` placeholder 可能 ship prod；改 required gate 或 sentinel |
+| 1-M1~M5 | 001 | future hardening / 不阻塞 | postgres start_period / WebSocket header / gzip_proxied / 小 doc 漂移 |
+| 2-M4 | 002 | feature 5 一起 evaluate | `VITE_SERVICE_EXPIRED_TOKEN_CODES=401` 會讓 wrong-password 401 也觸發 refresh flow — admin-web 端 login error 路徑需 dedupe |
+| 4-I1 | 004 | feature 8 解（已加進 roadmap） | TZ-skew column-type 範疇外 issue — schema-level TIMESTAMPTZ migration |
+| 4-I2 | 004 | 觀察、不修 | `JwtConfig::get_config` 500 fallback 可能 silent regress；當前 startup ordering 正確、不修；future config refactor 時順帶評估 |
+| 4-M2 ~ M5 | 004 | 部分已修 / minor | M2 已修（race comment 加在 b502528）；M3 map_err style 也順帶修；M4/M5 留作 future cleanup |
 
 ## 維護指引
 
