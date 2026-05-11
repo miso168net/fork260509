@@ -58,13 +58,13 @@ test "$(git submodule status | grep -c '^ ')" -eq 2
 
 Expected outcome: Both `admin-web` and `admin-api` submodules start with space (clean, SHA pinned correctly).
 
-**Evidence**:
+**Evidence** (retrospective capture，feature 2 完成時的 SHA pin state)：
 ```
- e704988a-based-SHA admin-web (...)
- <other-SHA> admin-api (...)
+ 29874dd38673c73d69ca2daa6dc648af30cd9ded admin-web (v2.1.0-12-g29874dd3)
+ 40e9764a83f8b1d4f59cc8aba1b6dd7bb7b8887a admin-api (heads/new-admin-rust-api)
 ```
 
-**Status**: PASS — Both submodules clean; outer SHA pin b039871 matches worktree HEAD.
+**Status**: PASS — 兩 row 行首為單 space（clean），outer SHA pin b039871 matches worktree HEAD。
 
 ### (e) PASS: Inner commits present in admin-web history
 
@@ -116,7 +116,7 @@ cd admin-web && git branch -v
 
 **Commit SHA**: b039871 (outer new-admin-root repo)
 
-**Commit message**: `chore(submodule): bump admin-web 到 29874dd3: GAP-0f login body field alignment`
+**Commit message**: `chore(submodule): bump admin-web 到 29874dd3: feature 2 GAP-0ab0f`
 
 **Verification**:
 ```bash

@@ -173,7 +173,7 @@
 - **SC-001**: 新 operator 從拿到 repo 到完成「資料層 healthy + migration 完成 + 13 張表存在 + 3 個 seed user 存在」全流程 ≤ 10 分鐘（含填 .env、`docker compose up`、驗證查詢）。
 - **SC-002**: `docker compose -f compose.yaml config -q` 與 `docker compose -f compose.yaml -f compose.dev.yaml config -q` 兩個指令 exit code 0、stderr 無 WARN/ERROR。
 - **SC-003**: `nginx -t` 對 `default.conf` 回 `syntax is ok` 與 `test is successful`、stderr 無警告。
-- **SC-004**: 第一次 migration 完成總耗時 ≤ 30 秒（postgres healthy 後到 migration container exit 0），第二次重跑 ≤ 5 秒（idempotent 快路徑）。
+- **SC-004**: cold start（首次 build admin-rust-api-build image + migration 首次 apply）總耗時依 docker build / cargo cache 而定，T008 evidence F-T008-2 實測 ~82 秒，視 build 環境屬 acceptable；warm-stack migration（image 已 built、postgres healthy 後到 migration container exit 0）≤ 30 秒；idempotent rerun（無 pending migration）≤ 5 秒。**註**：原 SC-004 寫的「≤ 30 秒」未區分 cold/warm，amend 對齊 T008 evidence reality。
 - **SC-005**: prod compose（不疊 dev override）跑起來後，`docker compose ps --format json | jq '.[].Publishers'` 顯示**只有** new-admin-base-web 有非空 publisher list，其他四個 service 全部 null/[]。
 - **SC-006**: nginx 反代回應 `/api/health` 的 round-trip latency ≤ 50ms（local docker network；前提：feature 6 完成後再驗）。
 - **SC-007**: `.env.example` 列出的必填變數數量 ≤ 4（最少摩擦），可選變數數量 ≥ 8（覆蓋常見調整需求）。

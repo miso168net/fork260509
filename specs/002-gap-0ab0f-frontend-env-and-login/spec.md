@@ -13,7 +13,7 @@
 | 涵蓋 GAP | **GAP-0a**（success code）+ **GAP-0b**（error code 類別）+ **GAP-0f**（login body field） |
 | 倉/層 | **admin-web**（=`fork260509-soybean-admin@new-admin-base-web`，本機透過 worktree 在 `admin-web/` 操作） |
 | 分組理由 | 三個 GAP 都屬「admin-web ↔ admin-rust-api wire-level 對齊」同主題、且全部位於 admin-web 倉內，符合 §III 例外條款（同主題同倉合併）。spec.md 開頭顯式列 GAP id，commits 各自帶對應 GAP scope。 |
-| 不涵蓋 | admin-web/.env.dev / .env.prod / .env.test 重構與 Dockerfile build args 接合（屬 feature 7 admin-web-dockerfile）；GAP-0c/0d（admin-api response camelCase，feature 3）；GAP-1 refresh handler（feature 4）；GAP-2/3/4 admin-web cleanup（feature 5）；feature 6 envsubst 改造 |
+| 不涵蓋 | admin-web/.env.prod / .env.test 重構與 Dockerfile build args 接合（屬 feature 7 admin-web-dockerfile；`.env.dev` 目前**不存在於 admin-web/**，feature 7 evaluate 是否要建）；GAP-0c/0d（admin-api response camelCase，feature 3）；GAP-1 refresh handler（feature 4）；GAP-2/3/4 admin-web cleanup（feature 5）；feature 6 envsubst 改造 |
 | 規模 | ≤ 5 行（4 行 .env value 改 + 1 行 .ts data field rename） |
 
 ## User Scenarios & Testing *(mandatory)*
@@ -67,7 +67,7 @@
 
 #### 範圍邊界（負面 requirement）
 
-- **FR-220**: 本 feature MUST NOT 動 `admin-web/.env.dev` / `.env.prod` / `.env.test`（屬 feature 7 範圍）。
+- **FR-220**: 本 feature MUST NOT 動 `admin-web/.env.prod` / `.env.test`（屬 feature 7 範圍）。`.env.dev` 目前不存在於 admin-web，vacuously 滿足。
 - **FR-221**: 本 feature MUST NOT 動 admin-rust-api 任何檔（不修 GAP-0c/0d/1，不違反 §III 跨倉禁制）。
 - **FR-222**: 本 feature MUST NOT 修 admin-web `auth/index.ts` 的 login 錯誤路徑邏輯 / refresh flow / route 載入邏輯（屬 features 4/5）。
 
@@ -94,7 +94,7 @@
 - 採 INTEGRATION-PLAN §4 GAP-0a/0b/0f 的**推薦方案 A**（admin-web 端對齊、不改 admin-rust-api side）：成本低、risk 集中於 admin-web、不違反 §III 跨倉禁制。
 - `.env` 改 4 個 value（不增不減 key）— 保持 admin-web 既有 env 結構。
 - GAP-0f 採「保留入參名 `userName`、改送出 field `identifier`」（不對外改 fetchLogin signature，避免影響其他 caller）。
-- 不動 `.env.dev` / `.env.prod` / `.env.test`（feature 7 重構時一起處理 — 在 build args 對接時統籌）。
+- 不動 `.env.prod` / `.env.test`（feature 7 重構時一起處理 — 在 build args 對接時統籌；`.env.dev` 目前不存在於 admin-web）。
 
 ### 對其他 feature 的依賴（明列以利 plan 階段排序）
 
@@ -115,7 +115,7 @@
 
 ### 不在範圍
 
-- admin-web `.env.dev` / `.env.prod` / `.env.test` 重構（feature 7）。
+- admin-web `.env.prod` / `.env.test` 重構（feature 7；`.env.dev` 目前不存在，feature 7 啟動時 evaluate 是否要建）。
 - admin-web build-time env 變數（VITE_BASE_URL / VITE_SERVICE_BASE_URL / VITE_APP_TITLE 等 — 屬 feature 7 build args 接合時處理）。
 - admin-web 既有錯誤處理 / refresh flow / route 載入邏輯（features 4/5）。
 - admin-rust-api 任何修補（features 3/4 + 6）。
