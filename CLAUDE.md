@@ -247,9 +247,9 @@ Quick reference（此處可能滯後 CHECKLIST，以 CHECKLIST 為準）：
 - 當前進行中：feature 3 `gap-0cd-rust-output-camel`（spec + clarify + plan 完成、tasks 待產）
 
 <!-- SPECKIT START -->
-**Active Spec**: [specs/005-admin-web-cleanup/spec.md](specs/005-admin-web-cleanup/spec.md)
-**Active Plan**: [specs/005-admin-web-cleanup/plan.md](specs/005-admin-web-cleanup/plan.md)
-**Phase**: Phase 1 完成（spec + clarify 0-question all-Clear + plan + Phase 0 research R1-R5 + Phase 1 data-model + contracts/admin-web-api-cleanup + quickstart）
+**Active Spec**: [specs/006-admin-web-dockerfile/spec.md](specs/006-admin-web-dockerfile/spec.md)
+**Active Plan**: [specs/006-admin-web-dockerfile/plan.md](specs/006-admin-web-dockerfile/plan.md)
+**Phase**: Phase 1 完成（spec + clarify 1-question Q1=A 合併 nginx + plan + Phase 0 research R1-R7 + Phase 1 data-model + contracts/admin-web-image + quickstart）
 **下一步**: `/speckit-tasks` → 產 tasks.md
 <!-- SPECKIT END -->
 
@@ -369,4 +369,5 @@ git log --oneline -5                  # 最近 5 個外層 commit，看 pin 變�
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
+at `specs/006-admin-web-dockerfile/plan.md`.
 <!-- SPECKIT END -->
