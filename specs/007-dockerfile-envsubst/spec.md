@@ -73,7 +73,7 @@ Operator 對既有 stack 啟動行為的小瑕疵期望被收斂：redis passwor
 
 - **FR-601**: admin-api MUST 用 `application.yaml.tpl` 作為設定 source-of-truth；image layer 內**不**含 `application.yaml`（無 hardcoded 預設值 ship）
 - **FR-602**: container entrypoint MUST 在啟動 server binary 前先跑 `envsubst < application.yaml.tpl > application.yaml`（或 streaming 寫入指定路徑）
-- **FR-603**: `application.yaml.tpl` 內所有可變設定 MUST 使用 `${APP_*}` 占位符；non-secret 之預設值可保留為 inline `${APP_VAR:-default}` 形式（envsubst 支援 fallback）
+- **FR-603**: `application.yaml.tpl` 內所有可變設定 MUST 使用 `${APP_*}` 占位符（bare form 即可，無 fallback）。**重要更正**（F6-T014 dynamic acceptance 發現）：GNU envsubst（gettext-runtime 0.22.5）**不**支援 POSIX shell `${VAR:-default}` syntax；遇到此 form 視為 invalid identifier 保留字面字串。因此 .tpl 之預設值不可寫 inline `${APP_VAR:-default}` 形式 —— 改由 compose.yaml 在 env 層保證對應值有設定（compose 之 `${VAR:-default}` 是 compose-level 解析、不依賴 envsubst）
 - **FR-604**: 不可變設定（如 `server.host: "0.0.0.0"`、`database.connect_timeout: 30`）**MAY** 保留 yaml inline，不需 env 化（permissive by design：implementer 自由度，非 strict requirement）
 - **FR-605**: entrypoint MUST 對 **secrets**（`APP_JWT_JWT_SECRET`、`APP_DATABASE_URL`、`APP_REDIS_URL`）做 **explicit required check**：若 env 未設或為空字串，**abort 啟動** 並 print 明確錯誤訊息
 - **FR-606**: entrypoint MUST 對 `APP_JWT_ISSUER` 做 **placeholder rejection**（1-I3，per §Clarifications Q1 = sentinel exact-match list）：env value **完全等於** 下列任一 sentinel 時 abort 啟動：
