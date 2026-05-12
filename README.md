@@ -64,7 +64,7 @@ git clone https://github.com/miso168net/fork260509-soybean-admin-base.git
 git clone https://github.com/miso168net/fork260509-soybean-admin-rust.git
 
 # 步驟 5：源倉切到 main，再用 worktree checkout 既有分支
-cd fork260509-soybean-admin
+cd fork260509-soybean-admin-base
 git switch main
 git worktree add ../admin-web new-admin-base-web
 cd ..

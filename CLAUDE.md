@@ -11,7 +11,7 @@
 | 命名 | 是什麼 | 對應目錄 | remote / 來源 | 在外層 git |
 |---|---|---|---|---|
 | `new-admin-root` | 傘狀 monorepo（**就是當前 workspace**） | `.` | （TBD：未來推到自己的 GitHub） | 自身 |
-| `new-admin-base-web` | `fork260509-soybean-admin` 上的新分支 | `admin-web/`（worktree） | push 回 `miso168net/fork260509-soybean-admin-base` 的 `new-admin-base-web` 分支 | submodule（記 SHA pin） |
+| `new-admin-base-web` | `fork260509-soybean-admin-base` 上的新分支 | `admin-web/`（worktree） | push 回 `miso168net/fork260509-soybean-admin-base` 的 `new-admin-base-web` 分支 | submodule（記 SHA pin） |
 | `new-admin-rust-api` | `fork260509-soybean-admin-rust` 上的新分支 | `admin-api/`（worktree） | push 回 `miso168net/fork260509-soybean-admin-rust` 的 `new-admin-rust-api` 分支 | submodule（記 SHA pin） |
 
 **短名 vs 長名 — 命名用法分工**：實務上有兩組稱呼，依場景挑：
@@ -227,7 +227,7 @@ git submodule status         # 列出兩個 submodule 的 SHA 與 branch
 
 - ❌ 不要在外層 `new-admin-root` repo `git add fork260509-*/`（4 個源倉 gitignored，會變 embedded git）。`admin-web/` `admin-api/` **可以** add（它們是 submodule，唯一正確方式就是 `git add admin-web` 記 SHA pin）。
 - ❌ 不要 `git submodule add ../<...> admin-web`：這會嘗試 clone 進 admin-web/、與既有 worktree 衝突。submodule 設定要**手寫 .gitmodules**（見 §9）。
-- ❌ 不要在 worktree 裡跑 `git push` 不指定 remote/branch — `cd admin-web` 預設推到 fork260509-soybean-admin，可能誤推 main 分支；用 `git push origin new-admin-base-web` 顯式指定。
+- ❌ 不要在 worktree 裡跑 `git push` 不指定 remote/branch — `cd admin-web` 預設推到 fork260509-soybean-admin-base，可能誤推 main 分支；用 `git push origin new-admin-base-web` 顯式指定。
 - ❌ 不要忘記第二段 commit：worktree 內改完 push 完，**一定要回外層 `git add admin-web && git commit`** 更新 pin，否則外層下次 commit 才會包進去（容易混淆 SHA 對應關係）。
 - ❌ 不要在 Rust `application.yaml` 直接改 hardcode（已決定改用 envsubst template，見 docs/INTEGRATION-PLAN.md §5.3）。
 - ℹ️ `README.md` 是給人類首次 onboarding 用的（特別是新機器 setup）；CLAUDE.md 是給 dev assistant 內部用的。兩者目的不同，不要混合 — 若 README 章節變多到開始重疊 CLAUDE.md 內容，把細節留 CLAUDE，README 只放「快速開始 + 指引到 CLAUDE」。
@@ -264,7 +264,7 @@ Quick reference（此處可能滯後 CHECKLIST，以 CHECKLIST 為準）：
 
 ```bash
 # Step 1：建立 worktree（從 fork 源倉開新分支）
-cd fork260509-soybean-admin
+cd fork260509-soybean-admin-base
 git fetch origin
 git worktree add -b new-admin-base-web ../admin-web
 cd ..
