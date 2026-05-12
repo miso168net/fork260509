@@ -2,17 +2,17 @@
 
 > 日期：2026-05-10
 > 來源：以 `INTEGRATION-RESEARCH.md` 為基礎，深入到實際 runtime 層級（Cargo.toml / Dockerfile / 各 entity / Res<T> / LoginInput / sys_tokens 表 / Casbin model / 預設 seed 資料）後產出
-> 範圍：在 `fork260509-soybean-admin` 開分支 `new-admin-base-web` 並 worktree 到 `admin-web/`、在 `fork260509-soybean-admin-rust` 開分支 `new-admin-rust-api` 並 worktree 到 `admin-api/`，外層 `new-admin-root` 傘狀 repo 用 docker-compose 整合運行環境
+> 範圍：在 `fork260509-soybean-admin-base` 開分支 `new-admin-base-web` 並 worktree 到 `admin-web/`、在 `fork260509-soybean-admin-rust` 開分支 `new-admin-rust-api` 並 worktree 到 `admin-api/`，外層 `new-admin-root` 傘狀 repo 用 docker-compose 整合運行環境
 
 ## 命名約定（重要 — 整篇文件以此為準）
 
 | 名稱 | 是什麼 | 對應目錄 | git remote |
 |---|---|---|---|
 | **`new-admin-root`** | 傘狀 monorepo（追蹤 docs/、deploy/、本計畫） | `.`（workspace root） | TBD（推到自己的 GitHub） |
-| **`new-admin-base-web`** | `fork260509-soybean-admin` 上的新分支 | `admin-web/` (git worktree) | `miso168net/fork260509-soybean-admin-base` 的 `new-admin-base-web` 分支 |
+| **`new-admin-base-web`** | `fork260509-soybean-admin-base` 上的新分支 | `admin-web/` (git worktree) | `miso168net/fork260509-soybean-admin-base` 的 `new-admin-base-web` 分支 |
 | **`new-admin-rust-api`** | `fork260509-soybean-admin-rust` 上的新分支 | `admin-api/` (git worktree) | `miso168net/fork260509-soybean-admin-rust` 的 `new-admin-rust-api` 分支 |
 
-**重點**：`admin-web/` 與 `admin-api/` 不是檔案複製，是 git worktree。`.git` 是檔案而非目錄，指向源倉的 `worktrees/`。在 `admin-web/` 內 commit 會直接寫入 fork260509-soybean-admin 的 `new-admin-base-web` 分支；外層 `new-admin-root` 不追蹤這兩個目錄（已在 .gitignore）。
+**重點**：`admin-web/` 與 `admin-api/` 不是檔案複製，是 git worktree。`.git` 是檔案而非目錄，指向源倉的 `worktrees/`。在 `admin-web/` 內 commit 會直接寫入 fork260509-soybean-admin-base 的 `new-admin-base-web` 分支；外層 `new-admin-root` 不追蹤這兩個目錄（已在 .gitignore）。
 
 ---
 
@@ -130,18 +130,18 @@ new-admin-root/                  ← 傘狀 repo（== workspace root，僅追蹤
 │   └── .env.example
 │
 │  === 以下是 worktree 與來源倉，外層 .gitignore 已排除 ===
-├── fork260509-soybean-admin/    ← worktree 源倉（must remain）
+├── fork260509-soybean-admin-base/    ← worktree 源倉（must remain）
 ├── fork260509-soybean-admin-rust/   ← worktree 源倉（must remain）
 ├── fork260509-soybean-admin-docs/   ← reference, untouched
 ├── fork260509-soybean-admin-nestjs/ ← reference, untouched
 │
 ├── admin-web/  (worktree, branch: new-admin-base-web)        ← cd admin-web && git status 顯示是這個分支
-│   ├── .git                     ← FILE 指向 fork260509-soybean-admin/.git/worktrees/admin-web
+│   ├── .git                     ← FILE 指向 fork260509-soybean-admin-base/.git/worktrees/admin-web
 │   ├── src/  build/  packages/  public/
 │   ├── package.json  vite.config.ts  pnpm-lock.yaml
 │   ├── .env  .env.dev  .env.prod   ← 改寫（GAP 修補）
 │   ├── Dockerfile               ← 新建（commit 到 new-admin-base-web 分支）
-│   └── ...（其餘 fork260509-soybean-admin 原內容）
+│   └── ...（其餘 fork260509-soybean-admin-base 原內容）
 │
 └── admin-api/  (worktree, branch: new-admin-rust-api)  ← cd admin-api && git status 顯示是這個分支
     ├── .git                     ← FILE 指向 fork260509-soybean-admin-rust/.git/worktrees/admin-api
@@ -185,7 +185,7 @@ new-admin-root/                  ← 傘狀 repo（== workspace root，僅追蹤
 cd /home/anew/x_Project/fork260509       # workspace root
 
 # === admin-web worktree ===
-cd fork260509-soybean-admin
+cd fork260509-soybean-admin-base
 git fetch origin                          # 確保拿到最新
 git worktree add -b new-admin-base-web ../admin-web    # 從 HEAD 開分支 new-admin-base-web，checkout 到 ../admin-web
 cd ..
@@ -197,7 +197,7 @@ git worktree add -b new-admin-rust-api ../admin-api
 cd ..
 
 # 驗證
-ls -la admin-web/.git      # 應該是 file，內容指向 fork260509-soybean-admin/.git/worktrees/admin-web
+ls -la admin-web/.git      # 應該是 file，內容指向 fork260509-soybean-admin-base/.git/worktrees/admin-web
 ls -la admin-api/.git  # 應該是 file，內容指向 fork260509-soybean-admin-rust/.git/worktrees/admin-api
 (cd admin-web && git branch --show-current)        # → new-admin-base-web
 (cd admin-api && git branch --show-current)    # → new-admin-rust-api
@@ -1146,11 +1146,11 @@ docker compose up -d
 ## 8. CI/CD outline（每個 repo 各一份 workflow）
 
 > 本計畫採「傘狀 + 兩個 worktree」結構，CI 也分三處：
-> - `fork260509-soybean-admin` 的 `new-admin-base-web` 分支：build new-admin-base-web Docker image → push ghcr
+> - `fork260509-soybean-admin-base` 的 `new-admin-base-web` 分支：build new-admin-base-web Docker image → push ghcr
 > - `fork260509-soybean-admin-rust` 的 `new-admin-rust-api` 分支：build rust Docker image → push ghcr
 > - `new-admin-root`（傘狀）：lint compose、跑 e2e smoke（拉兩個 image 起來測 §6.4）
 
-### 8.1 `new-admin-base-web` 分支 CI（push 到 fork260509-soybean-admin/.github/workflows/ci-base-web.yaml）
+### 8.1 `new-admin-base-web` 分支 CI（push 到 fork260509-soybean-admin-base/.github/workflows/ci-base-web.yaml）
 
 ```yaml
 name: build-base-web
@@ -1287,11 +1287,11 @@ jobs:
 
 由於採用 `git worktree`，沒有「複製檔案」這個動作 — 所有 Rust / UI 檔案**仍在原 fork repo**，只是新分支 `new-admin-base-web` / `new-admin-rust-api` 從 main 分歧出來，在分支上做改動。
 
-### B.1 `new-admin-base-web` 分支（在 fork260509-soybean-admin 上）
+### B.1 `new-admin-base-web` 分支（在 fork260509-soybean-admin-base 上）
 
 | 檔案 | 動作 | 在哪個分支 |
 |---|---|---|
-| 整個專案結構 | 不動，從 main 分支繼承 | `new-admin-base-web` ⊂ `fork260509-soybean-admin` |
+| 整個專案結構 | 不動，從 main 分支繼承 | `new-admin-base-web` ⊂ `fork260509-soybean-admin-base` |
 | `.env`、`.env.dev`、`.env.prod`（刪 `.env.test`） | 改寫對齊 Rust | `new-admin-base-web` |
 | `src/service/api/auth.ts` | GAP-0f / GAP-2 修補 | `new-admin-base-web` |
 | `src/service/api/route.ts` | GAP-4 路徑修正 | `new-admin-base-web` |
@@ -1389,7 +1389,7 @@ isBackendSuccess: response => String(response.data.code) === '200'   // ✓
 **最大的「未引爆地雷」**：refresh token 沒 expires_at；migration 補一次 + handler 檢查即可。
 
 **之後動手的最小起點**：
-1. 在 `fork260509-soybean-admin` 開分支 + worktree：`cd fork260509-soybean-admin && git worktree add -b new-admin-base-web ../admin-web`
+1. 在 `fork260509-soybean-admin-base` 開分支 + worktree：`cd fork260509-soybean-admin-base && git worktree add -b new-admin-base-web ../admin-web`
 2. 在 `fork260509-soybean-admin-rust` 開分支 + worktree：`cd fork260509-soybean-admin-rust && git worktree add -b new-admin-rust-api ../admin-api`
 3. 在 `new-admin-root` 根建 `deploy/` 與 `cp deploy/.env.example deploy/.env`，填密碼
 4. 在 `admin-web/` worktree 修 GAP-0a/0b/0f 的 ~5 行（先驗證能 login）

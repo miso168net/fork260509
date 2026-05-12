@@ -1,12 +1,12 @@
-# 整合評估：fork260509-soybean-admin × fork260509-soybean-admin-rust
+# 整合評估：fork260509-soybean-admin-base × fork260509-soybean-admin-rust
 
 > 日期：2026-05-10
 > 資料來源：graphify 知識圖譜（`graphify-out/graph.json`，3,616 nodes / 3,543 edges）+ 直接讀原始碼驗證
-> 範圍：前端 = `fork260509-soybean-admin`（standalone Vue 3 starter）、後端 = `fork260509-soybean-admin-rust`（axum + Casbin）
+> 範圍：前端 = `fork260509-soybean-admin-base`（standalone Vue 3 starter）、後端 = `fork260509-soybean-admin-rust`（axum + Casbin）
 
 ## 1. 前端實際的 API 表面（極小）
 
-`fork260509-soybean-admin` 是 **starter template**：
+`fork260509-soybean-admin-base` 是 **starter template**：
 
 - `src/views/` 只有 `home` 與 `_builtin`（login / 403 / 404 / 500 / iframe-page），**沒有任何管理頁面**
 - `.env.prod` 指向 `https://mock.apifox.cn/m1/3109515-0-default`（Apifox mock），預設用 mock 跑
@@ -133,7 +133,7 @@ Server port 在 `server/resources/application.yaml`：`10001`。
 
 ## 7. 建議的最小可行整合步驟
 
-1. **設定環境**：把 `fork260509-soybean-admin/.env.prod` 的 `VITE_SERVICE_BASE_URL` 從 Apifox mock 改成 `http://localhost:10001`
+1. **設定環境**：把 `fork260509-soybean-admin-base/.env.prod` 的 `VITE_SERVICE_BASE_URL` 從 Apifox mock 改成 `http://localhost:10001`
 2. **修 GAP-3**：選方案 B（前端 `fetchIsRouteExist` 改本地查）— 0 行後端變動
 3. **修 GAP-1**：選方案 A，加 `POST /auth/refreshToken` 到 Rust（~50 行）
 4. **修 GAP-2**：選方案 A，前端刪掉 `fetchCustomBackendError`
@@ -145,10 +145,10 @@ Server port 在 `server/resources/application.yaml`：`10001`。
 ## 附錄：關鍵檔案位置
 
 ### 前端
-- API client：`fork260509-soybean-admin/src/service/api/{auth,route,index}.ts`
-- HTTP wrapper：`fork260509-soybean-admin/src/service/request/index.ts`
-- 環境變數：`fork260509-soybean-admin/.env.{test,prod}`
-- Router guard 實作：`fork260509-soybean-admin/src/router/guard/{index,route,progress,title}.ts`
+- API client：`fork260509-soybean-admin-base/src/service/api/{auth,route,index}.ts`
+- HTTP wrapper：`fork260509-soybean-admin-base/src/service/request/index.ts`
+- 環境變數：`fork260509-soybean-admin-base/.env.{test,prod}`
+- Router guard 實作：`fork260509-soybean-admin-base/src/router/guard/{index,route,progress,title}.ts`
 
 ### Rust 後端
 - Router 定義：`fork260509-soybean-admin-rust/server/router/src/admin/*.rs`
