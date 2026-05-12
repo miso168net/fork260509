@@ -11,7 +11,7 @@
 |---|---|
 | 主題 | admin-web 對接 admin-rust-api 的初步 wire-level 對齊（HTTP code 識別 + login body field） |
 | 涵蓋 GAP | **GAP-0a**（success code）+ **GAP-0b**（error code 類別）+ **GAP-0f**（login body field） |
-| 倉/層 | **admin-web**（=`fork260509-soybean-admin@new-admin-base-web`，本機透過 worktree 在 `admin-web/` 操作） |
+| 倉/層 | **admin-web**（=`fork260509-soybean-admin-base@new-admin-base-web`，本機透過 worktree 在 `admin-web/` 操作） |
 | 分組理由 | 三個 GAP 都屬「admin-web ↔ admin-rust-api wire-level 對齊」同主題、且全部位於 admin-web 倉內，符合 §III 例外條款（同主題同倉合併）。spec.md 開頭顯式列 GAP id，commits 各自帶對應 GAP scope。 |
 | 不涵蓋 | admin-web/.env.prod / .env.test 重構與 Dockerfile build args 接合（屬 feature 7 admin-web-dockerfile；`.env.dev` 目前**不存在於 admin-web/**，feature 7 evaluate 是否要建）；GAP-0c/0d（admin-api response camelCase，feature 3）；GAP-1 refresh handler（feature 4）；GAP-2/3/4 admin-web cleanup（feature 5）；feature 6 envsubst 改造 |
 | 規模 | ≤ 5 行（4 行 .env value 改 + 1 行 .ts data field rename） |

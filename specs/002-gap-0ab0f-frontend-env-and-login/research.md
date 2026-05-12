@@ -170,7 +170,7 @@ echo "admin-web 新 SHA: $NEW_ADMIN_WEB_SHA"
 git add admin-web   # 注意：add 目錄、git 會記 SHA pin（gitlink），不會記檔案 diff
 git commit -m "chore(submodule): bump admin-web 到 ${NEW_ADMIN_WEB_SHA}: feature 2 GAP-0ab0f
 
-inner commits（在 fork260509-soybean-admin@new-admin-base-web 上）：
+inner commits（在 fork260509-soybean-admin-base@new-admin-base-web 上）：
 - fix(admin-web): GAP-0a 修正 success code（0000→200）
 - fix(admin-web): GAP-0b 清空 fake logout codes + 對齊 expired token 401
 - fix(admin-web): GAP-0f login body field userName→identifier

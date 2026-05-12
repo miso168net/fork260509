@@ -150,7 +150,7 @@ git add admin-web
 git commit -m "$(cat <<EOF
 chore(submodule): bump admin-web 到 ${NEW_SHA}: feature 2 GAP-0ab0f
 
-inner commits（在 fork260509-soybean-admin@new-admin-base-web）：
+inner commits（在 fork260509-soybean-admin-base@new-admin-base-web）：
 - fix(admin-web): GAP-0a + 0b 對齊 admin-rust-api wire-level codes
 - fix(admin-web): GAP-0f login body field userName → identifier
 

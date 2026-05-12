@@ -11,7 +11,7 @@
 |---|---|
 | 主題 | admin-web 服務層完成對 admin-api 既有 endpoints 的最後對齊 — 移除呼叫不存在端點的 caller、修正 path 不一致、刪除生產不用的 dev-only stub。 |
 | 涵蓋 GAP | **GAP-2**（`fetchCustomBackendError` 函式 → admin-api 沒 `/auth/error`）+ **GAP-3**（`/route/isRouteExist` → admin-api 沒此 endpoint，改本地 routeStore 查）+ **GAP-4**（`/route/getUserRoutes` → admin-api path 為 `/auth/getUserRoutes`） |
-| 倉/層 | **admin-web**（=`fork260509-soybean-admin@new-admin-base-web`，本機透過 worktree 在 `admin-web/` 操作） |
+| 倉/層 | **admin-web**（=`fork260509-soybean-admin-base@new-admin-base-web`，本機透過 worktree 在 `admin-web/` 操作） |
 | 分組理由 | 三個 GAP 都屬「admin-web 端清理 / 對齊」同主題、且全部位於 admin-web 倉內，符合 §III 例外條款（同主題同倉合併）。spec.md 開頭顯式列 GAP id；inner commits 各自帶對應 GAP scope（拆 3 個 inner commits 保留 traceability）。 |
 | 不涵蓋 | admin-api 任何檔（feature 6/8 範圍）；admin-web auth/index.ts login error path dedupe（review backlog 2-M4，留作獨立 follow-up 或下個 feature；本 feature 不擴 scope 進此 ad-hoc cleanup）；admin-web Dockerfile / build args（feature 7）；admin-web env 變數調整（feature 2 已對齊、feature 7 進一步重構）；新功能 / UI 變更 |
 | 規模 | ~25 行 TS diff（GAP-2 刪 ~7 行 + GAP-3 改寫 ~15 行 + GAP-4 改 1 行；含 import 整理） |

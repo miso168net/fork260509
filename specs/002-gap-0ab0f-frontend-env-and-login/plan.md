@@ -61,7 +61,7 @@ specs/002-gap-0ab0f-frontend-env-and-login/
 
 ### Source Code（admin-web 倉內，feature 將動）
 
-本 feature 改動全部在 **admin-web/** worktree 內（= `fork260509-soybean-admin@new-admin-base-web` branch；本機透過 worktree 在 `admin-web/` 操作；外層 `new-admin-root` 透過 submodule SHA pin 追蹤）：
+本 feature 改動全部在 **admin-web/** worktree 內（= `fork260509-soybean-admin-base@new-admin-base-web` branch；本機透過 worktree 在 `admin-web/` 操作；外層 `new-admin-root` 透過 submodule SHA pin 追蹤）：
 
 ```text
 admin-web/                                   ← worktree（branch: new-admin-base-web）
