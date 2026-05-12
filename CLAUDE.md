@@ -51,7 +51,7 @@ fork260509/                                ← workspace root（傘狀 repo new-
 │   ├── cache/                  (gitignored, LLM 擷取快取，可重產)
 │   ├── obsidian/               (gitignored, 4674 筆記)
 │   └── graph.html              (gitignored, 互動視覺化)
-├── fork260509-soybean-admin/              ← Vue 3 starter，worktree 源倉（gitignored，本機必留）
+├── fork260509-soybean-admin-base/         ← Vue 3 starter，worktree 源倉（gitignored，本機必留）
 ├── fork260509-soybean-admin-docs/         ← 文件站（gitignored，整合不用，僅參考）
 ├── fork260509-soybean-admin-nestjs/       ← NestJS backend + Vue frontend（gitignored，整合不用，僅參考）
 ├── fork260509-soybean-admin-rust/         ← Rust axum + Casbin backend，worktree 源倉（gitignored，本機必留）

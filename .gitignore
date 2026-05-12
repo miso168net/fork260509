@@ -23,14 +23,14 @@
 # ============================================================
 
 # --- fork 來源倉（worktree 的源頭，必須留在本機；不在外層追蹤）---
-fork260509-soybean-admin/
+fork260509-soybean-admin-base/
 fork260509-soybean-admin-docs/
 fork260509-soybean-admin-nestjs/
 fork260509-soybean-admin-rust/
 
 # --- worktree + submodule 並存 ---
-# admin-web/  是 fork260509-soybean-admin       的 new-admin-base-web 分支 worktree
-# admin-api/  是 fork260509-soybean-admin-rust  的 new-admin-rust-api 分支 worktree
+# admin-web/  是 fork260509-soybean-admin-base   的 new-admin-base-web 分支 worktree
+# admin-api/  是 fork260509-soybean-admin-rust   的 new-admin-rust-api 分支 worktree
 # 外層 git 把它們當 submodule（gitlink + .gitmodules），追蹤當前使用的 fork SHA。
 # **故意不在這裡擋** — 擋了 git 就 add 不進來。詳細操作手冊見 CLAUDE.md §9
 
